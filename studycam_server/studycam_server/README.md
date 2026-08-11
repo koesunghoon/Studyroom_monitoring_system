@@ -7,7 +7,7 @@ cd studycam_server
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
-
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 pip install -r requirements.txt
 python app.py
 ```
