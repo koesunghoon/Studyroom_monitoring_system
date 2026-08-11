@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STUDYCAM 순찰일지</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo-badge"><span>SC</span></div>
+    <div>
+      <div class="brand-title">STUDYCAM 순찰일지</div>
+      <div class="brand-sub">UNMANNED STUDY-ROOM PATROL LOG</div>
+    </div>
+    <div class="top-stat"><span class="pulse"></span>ROBOT-01 <b>순찰 중</b></div>
+    <div class="top-stat">📍 <b id="robotZone">2F 열람실</b></div>
+
+    <div class="topbar-right">
+      <div class="batt-pill"><span class="batt-dot"></span>배터리 <b id="robotBattery" style="color:var(--ink)">78%</b></div>
+      <div class="clock-note"><b id="clockTime">--:--:--</b><span id="clockDate">----.--.--</span></div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="tab-item active">개요</div>
+    <div class="tab-item">캠</div>
+    <div class="tab-item">맵</div>
+    <div class="tab-item">좌석</div>
+    <div class="tab-item">기록</div>
+    <div class="nav-gap"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="card kpi-row">
+      <div class="tape" style="left:6%; width:90px;"></div>
+      <div class="kpi"><div class="kpi-label">현재 착석 인원</div><div class="kpi-value">18<span> / 24석</span></div><div class="kpi-sub up">전일보다 +3명 ✏️</div></div>
+      <div class="kpi"><div class="kpi-label">오늘 순찰 횟수</div><div class="kpi-value" id="kpiPatrol">6<span> 회</span></div><div class="kpi-sub">다음 순찰까지 04:12</div></div>
+      <div class="kpi"><div class="kpi-label">금일 경고 이벤트</div><div class="kpi-value" id="kpiAlerts">2<span> 건</span></div><div class="kpi-sub warn">방금 전 확인함</div></div>
+      <div class="kpi"><div class="kpi-label">평균 인식 속도</div><div class="kpi-value">1.4<span> 초</span></div><div class="kpi-sub">YOLOv8n · 720p</div></div>
+    </div>
+
+    <div class="row row-cam-map">
+      <!-- CAMERA (실제 /video_feed 스트리밍) -->
+      <div class="card">
+        <div class="tape yellow" style="left:38%; width:80px;"></div>
+        <div class="card-head">
+          <span class="card-eyebrow">live cam</span><span class="card-title">순찰봇 눈으로 보기</span>
+        </div>
+        <div class="polaroid-wrap">
+          <div class="polaroid">
+            <div class="cam-body" id="camBody">
+              <img src="{{ url_for('video_feed') }}" alt="live camera"
+                   style="width:100%; height:100%; object-fit:cover; display:block;">
+              <div class="cam-note">/video_feed</div>
+            </div>
+            <div class="polaroid-caption">오늘도 다들 열공 중 ✏️</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP (아직 목업 — Nav2/Cartographer 연동 전) -->
+      <div class="card">
+        <div class="tape" style="left:40%; width:80px;"></div>
+        <div class="card-head">
+          <span class="card-eyebrow">nav2 · slam</span><span class="card-title">순찰 지도 그리는 중</span>
+        </div>
+        <div class="map-body">
+          <canvas id="mapCanvas"></canvas>
+          <div class="map-legend">
+            <span><span class="dot-sw" style="background:var(--sage)"></span>순찰 경로</span>
+            <span><span class="dot-sw" style="background:var(--muted-2)"></span>벽</span>
+            <span><span class="dot-sw" style="background:var(--mustard)"></span>로봇 위치</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEATS (Flask /api/seats) -->
+    <div class="card">
+      <div class="tape yellow" style="left:8%; width:90px;"></div>
+      <div class="card-head">
+        <span class="card-eyebrow">yolov8 · seat check</span><span class="card-title">오늘의 좌석 체크</span>
+      </div>
+      <div class="legend-row">
+        <span><span class="mark" style="color:var(--sage)">✓</span>착석</span>
+        <span><span class="mark" style="color:var(--muted-2)">○</span>공석</span>
+        <span><span class="mark" style="color:var(--mustard)">!</span>장시간 이석</span>
+        <span><span class="mark" style="color:var(--brick)">✕</span>이상행동 감지</span>
+      </div>
+      <div class="seat-grid" id="seatGrid"></div>
+    </div>
+
+    <!-- LOGS (Flask /api/logs/*, SQLite) -->
+    <div class="card">
+      <div class="tape" style="left:60%; width:90px;"></div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="attend">출결 관리</button>
+        <button class="tab-btn" data-tab="patrol">순찰 로그</button>
+        <button class="tab-btn" data-tab="warn">경고 이력</button>
+      </div>
+      <div class="ledger">
+        <div class="tab-panel active" id="tab-attend">
+          <div class="table-wrap"><table>
+            <thead><tr><th>시각</th><th>학생 ID</th><th>좌석</th><th>구분</th><th>상태</th></tr></thead>
+            <tbody id="attendBody"></tbody>
+          </table></div>
+        </div>
+        <div class="tab-panel" id="tab-patrol">
+          <div class="table-wrap"><table>
+            <thead><tr><th>시각</th><th>구역</th><th>순찰 결과</th><th>소요</th><th>상태</th></tr></thead>
+            <tbody id="patrolBody"></tbody>
+          </table></div>
+        </div>
+        <div class="tab-panel" id="tab-warn">
+          <div class="table-wrap"><table>
+            <thead><tr><th>시각</th><th>좌석</th><th>유형</th><th>신뢰도</th><th>처리</th></tr></thead>
+            <tbody id="warnBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDE: CORKBOARD -->
+  <div class="side">
+    <div class="side-title-wrap">
+      <div class="side-title">방금 무슨 일 있었지?</div>
+      <div class="side-sub">REAL-TIME EVENT NOTES</div>
+    </div>
+    <div class="event-feed" id="eventFeed"></div>
+
+    <div class="side-foot">
+      <div class="side-foot-title">// 데모 컨트롤 (터틀봇 연동 전 테스트용)</div>
+      <div class="test-btns">
+        <button onclick="triggerFall()">쓰러짐!</button>
+        <button onclick="triggerAway()">장시간 이석</button>
+        <button onclick="triggerIntrusion()">낯선 사람</button>
+        <button onclick="resetDemo()">초기화</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="alert-pin" id="alertPin">
+  <div class="alert-note">
+    <div class="pin-dot"></div>
+    <div class="alert-title">🚨 위급상황!</div>
+    <div class="alert-desc" id="alertDesc">7번 좌석 근처에서 쓰러짐이 의심돼요. 로봇이 지금 가고 있어요.</div>
+    <div class="alert-meta" id="alertMeta">CAM01 · 확신도 94%</div>
+    <div class="alert-actions">
+      <button class="primary" onclick="dismissAlert()">확인, 출동!</button>
+      <button onclick="dismissAlert()">오탐이에요</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
