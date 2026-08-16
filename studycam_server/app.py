@@ -1,15 +1,20 @@
 """
 STUDYCAM 관제 서버
 ------------------
-로컬 PC에서 여는 Flask 서버. 지금은 웹캠 스트리밍 + SQLite 로그 DB까지만 실제로 동작하고,
-좌석 현황/SLAM 맵은 아직 YOLO·ROS2가 안 붙어서 목업 데이터를 내려줍니다.
-각 자리에 "TODO"로 나중에 뭘 실데이터로 바꿔야 하는지 표시해 뒀습니다.
+로컬 PC에서 여는 Flask 서버.
+파이(터틀봇)가 8000번 포트로 올리는 원본 웹캠 스트림을 받아서,
+PC에서 YOLO 추론(sit/fallen) 후 박스를 그려 /video_feed 로 다시 내보냅니다.
+
+지연(딜레이) 방지: 수신 스레드가 항상 최신 프레임으로 덮어쓰고,
+스트리밍 쪽은 그 순간의 최신 프레임만 꺼내 쓰기 때문에 처리(YOLO)가 느려도
+지연이 계속 쌓이지 않습니다 (LatestFrameReader).
 """
 
 import os
 import time
 import random
 import sqlite3
+import threading
 from datetime import datetime
 
 from flask import Flask, Response, render_template, jsonify, request
@@ -25,20 +30,65 @@ MODEL_PATH = os.path.join(APP_DIR, "best.pt")
 app = Flask(__name__)
 
 # ============================================================
-# YOLO 모델 (쓰러짐 감지: bending / fallen / falling / standing)
+# 파이(터틀봇) 웹캠 스트림 주소
+# ============================================================
+PI_STREAM_URL = "http://192.168.0.4:8000/video_feed"   # 실제 파이 IP:포트로 교체
+
+# ============================================================
+# YOLO 모델 (sit / fallen 2클래스)
 # ============================================================
 yolo_model = YOLO(MODEL_PATH)
 CLASS_NAMES = yolo_model.names
-ALERT_CLASSES = {"fallen", "falling"}
+print("모델 클래스 확인:", CLASS_NAMES)   # 실행 시 콘솔에서 실제 라벨명 꼭 확인
+
+ALERT_CLASSES = {"fallen"}
 CONF_THRESHOLD = 0.5
 ALERT_COOLDOWN_SEC = 10
 BOX_COLORS = {
-    "fallen": (0, 0, 255),
-    "falling": (0, 0, 255),
-    "bending": (0, 200, 255),
-    "standing": (0, 200, 0),
+    "sit": (0, 200, 0),        # 초록 (BGR)
+    "fallen": (0, 0, 255),     # 빨강
 }
 _last_alert_ts = {}
+
+
+# ============================================================
+# 파이 스트림에서 "항상 최신 프레임만" 읽어오는 백그라운드 리더
+# 처리(YOLO) 속도가 수신 속도보다 느려도 지연이 누적되지 않도록 함
+# ============================================================
+class LatestFrameReader:
+    def __init__(self, url):
+        self.url = url
+        self.frame = None
+        self.lock = threading.Lock()
+        self.running = True
+        self.cap = cv2.VideoCapture(self.url)
+        self.thread = threading.Thread(target=self._reader, daemon=True)
+        self.thread.start()
+
+    def _reader(self):
+        while self.running:
+            if not self.cap.isOpened():
+                self.cap.release()
+                time.sleep(1)
+                self.cap = cv2.VideoCapture(self.url)
+                continue
+            ok, frame = self.cap.read()
+            if not ok:
+                time.sleep(0.05)
+                continue
+            with self.lock:
+                self.frame = frame   # 최신 프레임으로 계속 덮어씀 -> 밀린 프레임은 자동 폐기
+
+    def get_frame(self):
+        with self.lock:
+            return None if self.frame is None else self.frame.copy()
+
+    def stop(self):
+        self.running = False
+        self.cap.release()
+
+
+frame_reader = LatestFrameReader(PI_STREAM_URL)   # 앱 시작 시 한 번만 생성 (연결 재사용)
 
 
 # ============================================================
@@ -59,7 +109,7 @@ def init_db():
             ts TEXT NOT NULL,
             student_id TEXT NOT NULL,
             seat TEXT,
-            action TEXT NOT NULL,     -- 입실 / 퇴실
+            action TEXT NOT NULL,
             status TEXT DEFAULT '정상'
         );
         CREATE TABLE IF NOT EXISTS patrol_log (
@@ -74,7 +124,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ts TEXT NOT NULL,
             seat TEXT,
-            wtype TEXT NOT NULL,      -- 쓰러짐 의심 / 장시간 이석 / 비인가 침입 ...
+            wtype TEXT NOT NULL,
             confidence REAL,
             handled TEXT DEFAULT '확인 대기'
         );
@@ -82,7 +132,6 @@ def init_db():
     )
     conn.commit()
 
-    # 최초 실행 시에만 샘플 데이터 시딩
     if conn.execute("SELECT COUNT(*) c FROM attendance").fetchone()["c"] == 0:
         seed = [
             ("09:02:14", "S24-018", "07번", "입실", "정상"),
@@ -137,8 +186,8 @@ def index():
 
 # ============================================================
 # API: 로봇 상태 / KPI
-# TODO(터틀봇 연동): 아래 값들을 rosbridge_suite(websocket) 또는
-#   별도 브릿지 스크립트가 /api/robot_state 로 POST 해주는 실제 값으로 교체
+# TODO(터틀봇 연동): rosbridge_suite(websocket) 또는 별도 브릿지 스크립트가
+#   /api/robot_state 로 POST 해주는 실제 값으로 교체
 # ============================================================
 _robot_state = {
     "robot_state": "순찰 중",
@@ -163,8 +212,7 @@ def update_robot_state():
 
 # ============================================================
 # API: 좌석 현황 (YOLO 결과)
-# TODO(YOLO 연동): 추론 파이프라인에서 좌석별 상태를 계산해 이 캐시를 갱신하거나,
-#   이 엔드포인트 자체를 추론 서버 프록시로 교체
+# TODO(YOLO 연동): 추론 파이프라인에서 좌석별 상태를 계산해 이 캐시를 갱신
 # ============================================================
 SEAT_COUNT = 24
 _seat_cache = None
@@ -220,7 +268,7 @@ def api_logs(kind):
 
 # ============================================================
 # API: 이벤트 트리거 → DB 적재 (데모 버튼이 호출)
-# 실제 YOLO 감지가 붙으면 추론 코드에서 이 함수를 그대로 재사용하면 됨
+# 실제 YOLO 감지가 붙으면 insert_warning()을 그대로 재사용하면 됨
 # ============================================================
 @app.route("/api/event", methods=["POST"])
 def api_event():
@@ -240,67 +288,41 @@ def api_event():
 
 
 # ============================================================
-# 웹캠 스트리밍 (MJPEG)
-# 지금은 PC 웹캠(index 0)을 그대로 스트리밍합니다.
-# TODO(터틀봇 연동): cv2.VideoCapture(0) 자리를
-#   - 라즈베리파이가 image_transport로 올리는 RTSP/HTTP 스트림 URL
-#   - 또는 ROS2 이미지 토픽을 구독해 프레임을 넘겨주는 별도 브릿지
-#   로 교체하면 됨. 이 함수의 나머지 로직(JPEG 인코딩 후 스트리밍)은 그대로 재사용 가능.
+# 웹캠 스트리밍 (MJPEG) — 파이 스트림(LatestFrameReader) 최신 프레임을
+# YOLO 처리 후 재전송. 처리 속도가 느려도 지연이 쌓이지 않음.
 # ============================================================
 def gen_frames():
-    # index 0은 이 PC에서 Intel RealSense가 선점하고 있어서 실패함.
-    # 실제 USB 웹캠은 index 1에 잡힘 (장치 재연결/재부팅 시 순서 바뀔 수 있음).
-    cam = cv2.VideoCapture(1)
-    # isOpened()만으로는 Windows에서 카메라 없을 때도 True가 나올 수 있어
-    # 실제로 첫 프레임을 읽어봐서 진짜 사용 가능한지 확인한다.
-    camera_ok = cam.isOpened() and cam.read()[0]
+    while True:
+        frame = frame_reader.get_frame()
+        if frame is None:
+            time.sleep(0.1)
+            continue
 
-    if not camera_ok:
-        cam.release()
-        blank = 128 * np.ones((480, 640, 3), dtype="uint8")
-        cv2.putText(
-            blank, "NO CAMERA CONNECTED", (60, 240),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2,
-        )
-        ok, buf = cv2.imencode(".jpg", blank)
-        frame = buf.tobytes()
-        while True:
-            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-            time.sleep(1)
-
-    try:
-        while True:
-            ok, frame = cam.read()
-            if not ok:
-                break
-
-            results = yolo_model(frame, verbose=False)[0]
-            for box in results.boxes:
-                label = CLASS_NAMES[int(box.cls[0])]
-                conf = float(box.conf[0])
-                if conf < CONF_THRESHOLD:
-                    continue
-
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                color = BOX_COLORS.get(label, (255, 255, 255))
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                cv2.putText(
-                    frame, f"{label} {conf:.2f}", (x1, max(0, y1 - 8)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
-                )
-
-                if label in ALERT_CLASSES:
-                    last_ts = _last_alert_ts.get(label, 0)
-                    if time.time() - last_ts > ALERT_COOLDOWN_SEC:
-                        insert_warning("웹캠", "쓰러짐 의심", conf, "확인 대기")
-                        _last_alert_ts[label] = time.time()
-
-            ok, buf = cv2.imencode(".jpg", frame)
-            if not ok:
+        results = yolo_model(frame, verbose=False)[0]
+        for box in results.boxes:
+            label = CLASS_NAMES[int(box.cls[0])]
+            conf = float(box.conf[0])
+            if conf < CONF_THRESHOLD:
                 continue
-            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n")
-    finally:
-        cam.release()
+
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            color = BOX_COLORS.get(label, (255, 255, 255))
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+            cv2.putText(
+                frame, f"{label} {conf:.2f}", (x1, max(0, y1 - 8)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
+            )
+
+            if label in ALERT_CLASSES:
+                last_ts = _last_alert_ts.get(label, 0)
+                if time.time() - last_ts > ALERT_COOLDOWN_SEC:
+                    insert_warning("웹캠", "쓰러짐 의심", conf, "확인 대기")
+                    _last_alert_ts[label] = time.time()
+
+        ok, buf = cv2.imencode(".jpg", frame)
+        if not ok:
+            continue
+        yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n")
 
 
 @app.route("/video_feed")
@@ -310,4 +332,4 @@ def video_feed():
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
