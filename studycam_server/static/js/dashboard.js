@@ -1,9 +1,4 @@
-/* ============================================================
-   STUDYCAM 대시보드 클라이언트 JS
-   - 좌석/로그/상태: Flask API에서 fetch (실데이터 구조)
-   - SLAM 맵 / 카메라 감지박스: 아직 ROS2·YOLO가 없어 목업 유지
-     (연결되면 이 두 군데만 실데이터 바인딩으로 교체하면 됨)
-   ============================================================ */
+
 
 /* ---------------- 시계 ---------------- */
 function tickClock() {
@@ -17,7 +12,7 @@ function tickClock() {
 tickClock();
 setInterval(tickClock, 1000);
 
-/* ---------------- 로봇 상태 / KPI ---------------- */
+/* ---------------- 로봇 상태 / KPI (배터리는 이제 실데이터) ---------------- */
 async function refreshStatus() {
   try {
     const res = await fetch('/api/status');
@@ -64,7 +59,7 @@ async function refreshSeats() {
   }
 }
 
-/* ---------------- 로그 테이블 (DB에서 fetch) ---------------- */
+/* ---------------- 로그 테이블 ---------------- */
 function badgeFor(status) {
   if (['정상', '완료', '확인됨'].includes(status)) return { cls: 'good', icon: '✓' };
   if (['주의', '확인 대기'].includes(status)) return { cls: 'warn', icon: '!' };
@@ -120,7 +115,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-/* ---------------- 카메라 감지 박스 (아직 목업 — YOLO 연동 전) ---------------- */
+/* ---------------- 카메라 감지 박스 (데모 트리거용 오버레이만, 실제 박스는 서버가 프레임에 그려서 보냄) ---------------- */
 const camBody = document.getElementById('camBody');
 function renderBoxes(boxes) {
   document.querySelectorAll('.bbox').forEach((b) => b.remove());
@@ -136,10 +131,14 @@ function renderBoxes(boxes) {
   });
 }
 
-/* ---------------- SLAM 맵 (아직 목업 — Nav2/Cartographer 연동 전) ---------------- */
+/* ============================================================
+   SLAM 맵 — /api/map 에서 실제 occupancy grid + 로봇 위치 + 궤적 받아 렌더링
+   ============================================================ */
 const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
 let W, H;
+let lastMapData = null; // 리사이즈 시 재렌더링용
+
 function resizeCanvas() {
   const r = canvas.getBoundingClientRect();
   canvas.width = r.width * devicePixelRatio;
@@ -147,90 +146,113 @@ function resizeCanvas() {
   ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   W = r.width;
   H = r.height;
+  if (lastMapData) renderMap(lastMapData);
 }
 window.addEventListener('resize', resizeCanvas);
 
-function seeded(seed) {
-  let s = seed;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
+// world 좌표(m) -> grid 셀(col,row) -> canvas 픽셀 변환
+function worldToCanvas(x, y, map) {
+  const col = (x - map.origin_x) / map.resolution;
+  const rowFromBottom = (y - map.origin_y) / map.resolution;
+  const row = map.height - 1 - rowFromBottom; // OccupancyGrid는 y축이 위로 갈수록 증가, canvas는 반대라 뒤집음
+  const scaleX = W / map.width;
+  const scaleY = H / map.height;
+  return { px: col * scaleX, py: row * scaleY, scaleX, scaleY };
 }
-const rnd = seeded(3);
-const walls = [];
-for (let i = 0; i < 20; i++) {
-  walls.push({ x: rnd() * 0.85 + 0.04, y: rnd() * 0.78 + 0.06, w: rnd() * 0.055 + 0.018, h: rnd() * 0.055 + 0.018 });
-}
-const path = [];
-for (let i = 0; i < 7; i++) path.push({ x: rnd() * 0.75 + 0.1, y: rnd() * 0.7 + 0.12 });
 
-let robotT = 0;
-function drawMap() {
+function renderMap(map) {
   if (!W) resizeCanvas();
   ctx.clearRect(0, 0, W, H);
 
-  ctx.fillStyle = 'rgba(111,148,104,.14)';
-  walls.forEach((w) => {
+  if (!map.width || !map.height || !map.data || map.data.length === 0) {
+    ctx.fillStyle = 'var(--muted-2)';
+    ctx.font = '13px "Space Mono"';
+    ctx.fillText('맵 데이터 대기 중... (파이의 SLAM/Nav2 켜져 있는지 확인)', 16, 24);
+    return;
+  }
+
+  // occupancy grid를 오프스크린 캔버스에 셀 단위로 그린 뒤 확대해서 붙임 (성능)
+  const off = document.createElement('canvas');
+  off.width = map.width;
+  off.height = map.height;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(map.width, map.height);
+
+  for (let row = 0; row < map.height; row++) {
+    for (let col = 0; col < map.width; col++) {
+      const srcIdx = (map.height - 1 - row) * map.width + col; // OccupancyGrid row 뒤집기
+      const v = map.data[srcIdx];
+      const dstIdx = (row * map.width + col) * 4;
+      let r, g, b;
+      if (v === -1) {
+        // 미탐색 영역
+        r = g = b = 46;
+      } else if (v >= 65) {
+        // 벽/장애물
+        r = g = b = 166;
+      } else {
+        // 빈 공간 (탐색 완료)
+        r = 238; g = 240; b = 228;
+      }
+      img.data[dstIdx] = r;
+      img.data[dstIdx + 1] = g;
+      img.data[dstIdx + 2] = b;
+      img.data[dstIdx + 3] = 255;
+    }
+  }
+  octx.putImageData(img, 0, 0);
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0, map.width, map.height, 0, 0, W, H);
+
+  // 이동 궤적 (실제 로봇 위치 기록)
+  if (map.trail && map.trail.length > 1) {
+    ctx.strokeStyle = 'rgba(111,148,104,.7)';
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([5, 4]);
     ctx.beginPath();
-    ctx.roundRect(w.x * W, w.y * H, w.w * W, w.h * H, 3);
-    ctx.fill();
-  });
-  ctx.strokeStyle = '#a6a894';
-  ctx.lineWidth = 1.3;
-  walls.forEach((w) => {
-    ctx.beginPath();
-    ctx.roundRect(w.x * W, w.y * H, w.w * W, w.h * H, 3);
+    map.trail.forEach(([x, y], i) => {
+      const { px, py } = worldToCanvas(x, y, map);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
     ctx.stroke();
-  });
+    ctx.setLineDash([]);
+  }
 
-  ctx.strokeStyle = 'rgba(111,148,104,.7)';
-  ctx.lineWidth = 1.6;
-  ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  path.forEach((p, i) => {
-    const x = p.x * W, y = p.y * H;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  ctx.setLineDash([]);
-  path.forEach((p) => {
-    ctx.fillStyle = 'rgba(111,148,104,.45)';
+  // 로봇 현재 위치 + 방향
+  if (map.robot && map.robot.valid) {
+    const { px, py } = worldToCanvas(map.robot.x, map.robot.y, map);
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(-map.robot.yaw); // ROS yaw(반시계) -> canvas(시계) 방향 보정
+    ctx.fillStyle = '#d99a2b';
     ctx.beginPath();
-    ctx.arc(p.x * W, p.y * H, 2.6, 0, 7);
+    ctx.moveTo(9, 0);
+    ctx.lineTo(-6, 5.5);
+    ctx.lineTo(-6, -5.5);
+    ctx.closePath();
     ctx.fill();
-  });
+    ctx.restore();
 
-  robotT += 0.0032;
-  const seg = Math.floor(robotT) % path.length;
-  const nextSeg = (seg + 1) % path.length;
-  const localT = robotT % 1;
-  const a = path[seg], b = path[nextSeg];
-  const rx = (a.x + (b.x - a.x) * localT) * W;
-  const ry = (a.y + (b.y - a.y) * localT) * H;
-  const heading = Math.atan2(b.y - a.y, b.x - a.x);
-
-  ctx.save();
-  ctx.translate(rx, ry);
-  ctx.rotate(heading);
-  ctx.fillStyle = '#d99a2b';
-  ctx.beginPath();
-  ctx.moveTo(8, 0);
-  ctx.lineTo(-5, 5);
-  ctx.lineTo(-5, -5);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-
-  ctx.strokeStyle = 'rgba(217,154,43,.4)';
-  ctx.beginPath();
-  ctx.arc(rx, ry, 10, 0, 7);
-  ctx.stroke();
-
-  requestAnimationFrame(drawMap);
+    ctx.strokeStyle = 'rgba(217,154,43,.4)';
+    ctx.beginPath();
+    ctx.arc(px, py, 10, 0, 7);
+    ctx.stroke();
+  }
 }
+
+async function refreshMap() {
+  try {
+    const res = await fetch('/api/map');
+    const map = await res.json();
+    lastMapData = map;
+    renderMap(map);
+  } catch (e) {
+    console.warn('map fetch 실패', e);
+  }
+}
+
 resizeCanvas();
-requestAnimationFrame(drawMap);
 
 /* ---------------- 이벤트 피드 (스티키노트) ---------------- */
 const eventFeed = document.getElementById('eventFeed');
@@ -250,7 +272,7 @@ function dismissAlert() {
   document.getElementById('alertPin').classList.remove('show');
 }
 
-/* ---------------- 데모 트리거 버튼: 실제로 서버(DB)에 이벤트를 적재함 ---------------- */
+/* ---------------- 데모 트리거 버튼: 서버(DB)에 이벤트 적재 ---------------- */
 async function postEvent(type, seat) {
   await fetch('/api/event', {
     method: 'POST',
@@ -273,7 +295,6 @@ async function triggerFall() {
   document.getElementById('alertDesc').textContent = '7번 좌석 근처에서 쓰러짐이 의심돼요. 로봇이 지금 가고 있어요.';
   document.getElementById('alertMeta').textContent = 'CAM01 · 확신도 94%';
   showPin();
-  renderBoxes([{ l: 63, t: 68, w: 16, h: 10, label: '위급! 🚨', cls: 'danger' }]);
   pushEvent('🚨 <b>7번 좌석 쓰러짐 의심</b> — 로봇 출동 중!');
   await postEvent('fall', '07번');
   await setSeatState(7, 'alert');
@@ -285,7 +306,6 @@ async function triggerAway() {
 }
 async function triggerIntrusion() {
   pushEvent('출입 제한 구역에서 낯선 사람이 보여요 👀');
-  renderBoxes([{ l: 20, t: 18, w: 14, h: 22, label: '미확인 인원', cls: 'warn' }]);
   await postEvent('intrusion', null);
 }
 function resetDemo() {
@@ -299,7 +319,9 @@ function resetDemo() {
 refreshStatus();
 refreshSeats();
 refreshAllLogs();
+refreshMap();
 pushEvent('로봇이 2F 열람실 순찰을 시작했어요 🚶');
 
-setInterval(refreshStatus, 8000);
+setInterval(refreshStatus, 5000);   // 배터리 실데이터라 좀 더 자주
 setInterval(refreshSeats, 15000);
+setInterval(refreshMap, 2000);      // 맵/로봇위치 갱신
