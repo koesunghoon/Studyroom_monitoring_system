@@ -8,7 +8,7 @@ from datetime import datetime
 from collections import deque
 
 from flask import Flask, Response, render_template, jsonify, request
-
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -30,7 +30,7 @@ app = Flask(__name__)
 # ============================================================
 # 파이(터틀봇) 웹캠 스트림 주소
 # ============================================================
-PI_STREAM_URL = "http://192.168.0.4:8000/video_feed"   # 실제 파이 IP:포트로 교체
+PI_STREAM_URL = "http://192.168.0.4:8000/video_feed"   # 실제 파이 IP:포트로 ros2 topic list --no-daemon | grep map교체
 
 # ============================================================
 # YOLO 모델 (sit / fallen 2클래스)
@@ -116,7 +116,13 @@ class RosBridge(Node):
     def __init__(self):
         super().__init__("studycam_bridge")
         self.create_subscription(BatteryState, "/battery_state", self.on_battery, 10)
-        self.create_subscription(OccupancyGrid, "/map", self.on_map, 1)
+
+        map_qos = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        self.create_subscription(OccupancyGrid, "/map", self.on_map, map_qos)
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
