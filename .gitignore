@@ -1,0 +1,14 @@
+# 가상환경
+venv/
+**/venv/
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+
+# DB (실행하면서 생기는 파일이라 커밋 대상 아님)
+studycam.db
+
+# OS/에디터
+.DS_Store
+.vscode/
