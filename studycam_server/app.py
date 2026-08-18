@@ -1,27 +1,25 @@
-"""
-STUDYCAM 관제 서버
-------------------
-로컬 PC에서 여는 Flask 서버.
-파이(터틀봇)가 8000번 포트로 올리는 원본 웹캠 스트림을 받아서,
-PC에서 YOLO 추론(sit/fallen) 후 박스를 그려 /video_feed 로 다시 내보냅니다.
-
-지연(딜레이) 방지: 수신 스레드가 항상 최신 프레임으로 덮어쓰고,
-스트리밍 쪽은 그 순간의 최신 프레임만 꺼내 쓰기 때문에 처리(YOLO)가 느려도
-지연이 계속 쌓이지 않습니다 (LatestFrameReader).
-"""
-
 import os
 import time
+import math
 import random
 import sqlite3
 import threading
 from datetime import datetime
+from collections import deque
 
 from flask import Flask, Response, render_template, jsonify, request
 
 import cv2
 import numpy as np
 from ultralytics import YOLO
+
+import rclpy
+from rclpy.node import Node
+from rclpy.time import Time
+from sensor_msgs.msg import BatteryState
+from nav_msgs.msg import OccupancyGrid
+import tf2_ros
+from tf2_ros import TransformException
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_DIR, "studycam.db")
@@ -39,21 +37,20 @@ PI_STREAM_URL = "http://192.168.0.4:8000/video_feed"   # 실제 파이 IP:포트
 # ============================================================
 yolo_model = YOLO(MODEL_PATH)
 CLASS_NAMES = yolo_model.names
-print("모델 클래스 확인:", CLASS_NAMES)   # 실행 시 콘솔에서 실제 라벨명 꼭 확인
+print("모델 클래스 확인:", CLASS_NAMES)
 
 ALERT_CLASSES = {"fallen"}
 CONF_THRESHOLD = 0.5
 ALERT_COOLDOWN_SEC = 10
 BOX_COLORS = {
-    "sit": (0, 200, 0),        # 초록 (BGR)
-    "fallen": (0, 0, 255),     # 빨강
+    "sit": (0, 200, 0),
+    "fallen": (0, 0, 255),
 }
 _last_alert_ts = {}
 
 
 # ============================================================
 # 파이 스트림에서 "항상 최신 프레임만" 읽어오는 백그라운드 리더
-# 처리(YOLO) 속도가 수신 속도보다 느려도 지연이 누적되지 않도록 함
 # ============================================================
 class LatestFrameReader:
     def __init__(self, url):
@@ -77,18 +74,95 @@ class LatestFrameReader:
                 time.sleep(0.05)
                 continue
             with self.lock:
-                self.frame = frame   # 최신 프레임으로 계속 덮어씀 -> 밀린 프레임은 자동 폐기
+                self.frame = frame
 
     def get_frame(self):
         with self.lock:
             return None if self.frame is None else self.frame.copy()
 
-    def stop(self):
-        self.running = False
-        self.cap.release()
+
+frame_reader = LatestFrameReader(PI_STREAM_URL)
 
 
-frame_reader = LatestFrameReader(PI_STREAM_URL)   # 앱 시작 시 한 번만 생성 (연결 재사용)
+# ============================================================
+# 공유 상태 (rclpy 노드가 씀 <-> Flask 라우트가 읽음)
+# ============================================================
+_state_lock = threading.Lock()
+
+_robot_state = {
+    "robot_state": "순찰 중",
+    "zone": "2F 열람실",
+    "battery": 0,
+    "patrol_count_today": 6,
+}
+
+_map_state = {
+    "width": 0,
+    "height": 0,
+    "resolution": 0.05,
+    "origin_x": 0.0,
+    "origin_y": 0.0,
+    "data": [],
+}
+
+_robot_pose = {"x": 0.0, "y": 0.0, "yaw": 0.0, "valid": False}
+_trail = deque(maxlen=300)
+
+
+# ============================================================
+# rclpy 백그라운드 노드 — 배터리 / SLAM 맵 / 로봇 위치(tf) 구독
+# ============================================================
+class RosBridge(Node):
+    def __init__(self):
+        super().__init__("studycam_bridge")
+        self.create_subscription(BatteryState, "/battery_state", self.on_battery, 10)
+        self.create_subscription(OccupancyGrid, "/map", self.on_map, 1)
+
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.create_timer(0.5, self.update_pose)
+
+        self.get_logger().info("studycam_bridge 시작 - battery/map/tf 구독 중...")
+
+    def on_battery(self, msg: BatteryState):
+        with _state_lock:
+            _robot_state["battery"] = round(msg.percentage)  # 터틀봇3는 0~100 그대로 들어옴
+
+    def on_map(self, msg: OccupancyGrid):
+        with _state_lock:
+            _map_state["width"] = msg.info.width
+            _map_state["height"] = msg.info.height
+            _map_state["resolution"] = msg.info.resolution
+            _map_state["origin_x"] = msg.info.origin.position.x
+            _map_state["origin_y"] = msg.info.origin.position.y
+            _map_state["data"] = list(msg.data)
+
+    def update_pose(self):
+        try:
+            t = self.tf_buffer.lookup_transform("map", "base_footprint", Time())
+        except TransformException:
+            return  # 아직 맵/tf가 안 잡혔으면 그냥 넘어감 (에러 아님)
+
+        x = t.transform.translation.x
+        y = t.transform.translation.y
+        q = t.transform.rotation
+        siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+        yaw = math.atan2(siny_cosp, cosy_cosp)
+
+        with _state_lock:
+            _robot_pose.update({"x": x, "y": y, "yaw": yaw, "valid": True})
+            _trail.append((x, y))
+
+
+def start_ros_bridge():
+    rclpy.init()
+    node = RosBridge()
+    rclpy.spin(node)
+
+
+ros_thread = threading.Thread(target=start_ros_bridge, daemon=True)
+ros_thread.start()
 
 
 # ============================================================
@@ -185,34 +259,43 @@ def index():
 
 
 # ============================================================
-# API: 로봇 상태 / KPI
-# TODO(터틀봇 연동): rosbridge_suite(websocket) 또는 별도 브릿지 스크립트가
-#   /api/robot_state 로 POST 해주는 실제 값으로 교체
+# API: 로봇 상태 / KPI (battery는 이제 rclpy 노드가 실시간으로 채움)
 # ============================================================
-_robot_state = {
-    "robot_state": "순찰 중",
-    "zone": "2F 열람실",
-    "battery": 78,
-    "patrol_count_today": 6,
-}
-
-
 @app.route("/api/status")
 def api_status():
-    return jsonify(_robot_state)
+    with _state_lock:
+        return jsonify(dict(_robot_state))
 
 
 @app.route("/api/robot_state", methods=["POST"])
 def update_robot_state():
-    """터틀봇/STM32 쪽에서 주기적으로 호출해 상태를 갱신하는 용도 (추후 사용)."""
+    """수동으로 상태를 덮어쓰고 싶을 때(예: 순찰 구역 변경)만 사용."""
     data = request.get_json(force=True)
-    _robot_state.update({k: v for k, v in data.items() if k in _robot_state})
+    with _state_lock:
+        _robot_state.update({k: v for k, v in data.items() if k in _robot_state})
     return jsonify({"ok": True})
 
 
 # ============================================================
+# API: SLAM 맵 (실데이터) — /map, 로봇 위치, 이동 궤적
+# ============================================================
+@app.route("/api/map")
+def api_map():
+    with _state_lock:
+        return jsonify({
+            "width": _map_state["width"],
+            "height": _map_state["height"],
+            "resolution": _map_state["resolution"],
+            "origin_x": _map_state["origin_x"],
+            "origin_y": _map_state["origin_y"],
+            "data": _map_state["data"],
+            "robot": dict(_robot_pose),
+            "trail": list(_trail),
+        })
+
+
+# ============================================================
 # API: 좌석 현황 (YOLO 결과)
-# TODO(YOLO 연동): 추론 파이프라인에서 좌석별 상태를 계산해 이 캐시를 갱신
 # ============================================================
 SEAT_COUNT = 24
 _seat_cache = None
@@ -236,7 +319,6 @@ def api_seats():
 
 @app.route("/api/seats/<int:no>", methods=["POST"])
 def set_seat(no):
-    """데모 트리거나 실제 YOLO 파이프라인이 개별 좌석 상태를 갱신할 때 사용."""
     data = request.get_json(force=True)
     seats = get_seats()
     for s in seats:
@@ -246,7 +328,7 @@ def set_seat(no):
 
 
 # ============================================================
-# API: 로그 조회 (실제 SQLite)
+# API: 로그 조회
 # ============================================================
 _LOG_TABLES = {
     "attendance": "attendance",
@@ -267,8 +349,7 @@ def api_logs(kind):
 
 
 # ============================================================
-# API: 이벤트 트리거 → DB 적재 (데모 버튼이 호출)
-# 실제 YOLO 감지가 붙으면 insert_warning()을 그대로 재사용하면 됨
+# API: 이벤트 트리거
 # ============================================================
 @app.route("/api/event", methods=["POST"])
 def api_event():
@@ -288,8 +369,7 @@ def api_event():
 
 
 # ============================================================
-# 웹캠 스트리밍 (MJPEG) — 파이 스트림(LatestFrameReader) 최신 프레임을
-# YOLO 처리 후 재전송. 처리 속도가 느려도 지연이 쌓이지 않음.
+# 웹캠 스트리밍 (MJPEG) — 파이 스트림 최신 프레임을 YOLO 처리 후 재전송
 # ============================================================
 def gen_frames():
     while True:
