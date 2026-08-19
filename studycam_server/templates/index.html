@@ -20,11 +20,10 @@
       <div class="brand-title">STUDYCAM 순찰일지</div>
       <div class="brand-sub">UNMANNED STUDY-ROOM PATROL LOG</div>
     </div>
-    <div class="top-stat"><span class="pulse"></span>ROBOT-01 <b>순찰 중</b></div>
-    <div class="top-stat">📍 <b id="robotZone">2F 열람실</b></div>
+    <div class="top-stat">📍 <b id="robotZone">열람실</b></div>
 
     <div class="topbar-right">
-      <div class="batt-pill"><span class="batt-dot"></span>배터리 <b id="robotBattery" style="color:var(--ink)">78%</b></div>
+      <div class="batt-pill"><span class="batt-dot"></span>배터리 <b id="robotBattery" style="color:var(--ink)">--%</b></div>
       <div class="clock-note"><b id="clockTime">--:--:--</b><span id="clockDate">----.--.--</span></div>
     </div>
   </div>
@@ -44,10 +43,20 @@
 
     <div class="card kpi-row">
       <div class="tape" style="left:6%; width:90px;"></div>
-      <div class="kpi"><div class="kpi-label">현재 착석 인원</div><div class="kpi-value">18<span> / 24석</span></div><div class="kpi-sub up">전일보다 +3명 ✏️</div></div>
-      <div class="kpi"><div class="kpi-label">오늘 순찰 횟수</div><div class="kpi-value" id="kpiPatrol">6<span> 회</span></div><div class="kpi-sub">다음 순찰까지 04:12</div></div>
-      <div class="kpi"><div class="kpi-label">금일 경고 이벤트</div><div class="kpi-value" id="kpiAlerts">2<span> 건</span></div><div class="kpi-sub warn">방금 전 확인함</div></div>
-      <div class="kpi"><div class="kpi-label">평균 인식 속도</div><div class="kpi-value">1.4<span> 초</span></div><div class="kpi-sub">YOLOv8n · 720p</div></div>
+      <div class="kpi kpi-big">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-body">
+          <div class="kpi-label">현재 착석 인원</div>
+          <div class="kpi-value"><span id="kpiOccupied">-</span><span class="kpi-unit"> / <span id="kpiSeatTotal">7</span>석</span></div>
+        </div>
+      </div>
+      <div class="kpi kpi-big">
+        <div class="kpi-icon">🚶</div>
+        <div class="kpi-body">
+          <div class="kpi-label">순찰 상태</div>
+          <div class="kpi-value" id="kpiPatrolState">-</div>
+        </div>
+      </div>
     </div>
 
     <div class="row row-cam-map">
@@ -69,7 +78,7 @@
         </div>
       </div>
 
-      <!-- MAP (아직 목업 — Nav2/Cartographer 연동 전) -->
+      <!-- MAP (실데이터 — Nav2/Cartographer /map, /tf 구독) -->
       <div class="card">
         <div class="tape" style="left:40%; width:80px;"></div>
         <div class="card-head">
@@ -86,7 +95,7 @@
       </div>
     </div>
 
-    <!-- SEATS (Flask /api/seats) -->
+    <!-- SEATS (Flask /api/seats, 총 7석) -->
     <div class="card">
       <div class="tape yellow" style="left:8%; width:90px;"></div>
       <div class="card-head">
@@ -95,7 +104,6 @@
       <div class="legend-row">
         <span><span class="mark" style="color:var(--sage)">✓</span>착석</span>
         <span><span class="mark" style="color:var(--muted-2)">○</span>공석</span>
-        <span><span class="mark" style="color:var(--mustard)">!</span>장시간 이석</span>
         <span><span class="mark" style="color:var(--brick)">✕</span>이상행동 감지</span>
       </div>
       <div class="seat-grid" id="seatGrid"></div>
@@ -124,7 +132,7 @@
         </div>
         <div class="tab-panel" id="tab-warn">
           <div class="table-wrap"><table>
-            <thead><tr><th>시각</th><th>좌석</th><th>유형</th><th>신뢰도</th><th>처리</th></tr></thead>
+            <thead><tr><th>시각</th><th>좌석</th><th>유형</th><th>신뢰도</th><th>거리</th><th>처리</th></tr></thead>
             <tbody id="warnBody"></tbody>
           </table></div>
         </div>
@@ -139,16 +147,6 @@
       <div class="side-sub">REAL-TIME EVENT NOTES</div>
     </div>
     <div class="event-feed" id="eventFeed"></div>
-
-    <div class="side-foot">
-      <div class="side-foot-title">// 데모 컨트롤 (터틀봇 연동 전 테스트용)</div>
-      <div class="test-btns">
-        <button onclick="triggerFall()">쓰러짐!</button>
-        <button onclick="triggerAway()">장시간 이석</button>
-        <button onclick="triggerIntrusion()">낯선 사람</button>
-        <button onclick="resetDemo()">초기화</button>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -157,11 +155,11 @@
   <div class="alert-note">
     <div class="pin-dot"></div>
     <div class="alert-title">🚨 위급상황!</div>
-    <div class="alert-desc" id="alertDesc">7번 좌석 근처에서 쓰러짐이 의심돼요. 로봇이 지금 가고 있어요.</div>
+    <div class="alert-desc" id="alertDesc">7번 좌석에서 쓰러짐이 의심됩니다.</div>
     <div class="alert-meta" id="alertMeta">CAM01 · 확신도 94%</div>
     <div class="alert-actions">
-      <button class="primary" onclick="dismissAlert()">확인, 출동!</button>
-      <button onclick="dismissAlert()">오탐이에요</button>
+      <button class="primary" onclick="resolveAlert('완료')">조치 완료</button>
+      <button onclick="resolveAlert('오탐')">오탐이에요</button>
     </div>
   </div>
 </div>
