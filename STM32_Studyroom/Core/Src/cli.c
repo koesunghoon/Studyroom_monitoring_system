@@ -217,66 +217,31 @@ static void CLI_MenuAdminAuth(void)
 
 static void CLI_MenuWifiTest(void)
 {
-    // uint8_t result;
-
-    // CLI_Print("\r\n===== WiFi 연결 테스트 =====\r\n");
-
-    // CLI_Print("ESP01 초기화 중...\r\n");
-    // ESP01_Init();
-
-    // CLI_Print("WiFi 접속 시도 중...\r\n");
-    // result = ESP01_ConnectWiFi(WIFI_SSID, WIFI_PASSWORD);
-    // if (result != ESP01_OK) {
-    //     CLI_Print(">> WiFi 접속 실패 (SSID/비번 확인 또는 타임아웃)\r\n");
-    //     return;
-    // }
-    // CLI_Print(">> WiFi 접속 성공!\r\n");
-
-    // CLI_Print("서버 연결 시도 중...\r\n");
-    // result = ESP01_ConnectServer(SERVER_IP, SERVER_PORT);
-    // if (result != ESP01_OK) {
-    //     CLI_Print(">> 서버 연결 실패 (IP/포트 확인 또는 서버가 안 켜져있음)\r\n");
-    //     return;
-    // }
-    // CLI_Print(">> 서버 연결 성공!\r\n");
-
     uint8_t result;
-    char msg[300];
 
     CLI_Print("\r\n===== WiFi 연결 테스트 =====\r\n");
 
-    CLI_Print("[AT 테스트] ");
-    result = ESP01_SendCommand("AT", "OK", 2000);
-    snprintf(msg, sizeof(msg), "결과: %d, 응답: [%s]\r\n", result, ESP01_GetLastResponse());
-    CLI_Print(msg);
+    CLI_Print("ESP01 초기화 중...\r\n");
+    ESP01_Init();
+
+    CLI_Print("WiFi 접속 시도 중...\r\n");
+    result = ESP01_ConnectWiFi(WIFI_SSID, WIFI_PASSWORD);
     if (result != ESP01_OK) {
-        CLI_Print(">> 모듈 자체가 응답 없음 - 배선/전원 확인 필요\r\n");
+        CLI_Print(">> WiFi 접속 실패 (SSID/비번 확인 또는 타임아웃)\r\n");
         return;
     }
-
-    CLI_Print("[에코 끄기] ");
-    result = ESP01_SendCommand("ATE0", "OK", 2000);
-    snprintf(msg, sizeof(msg), "결과: %d\r\n", result);
-    CLI_Print(msg);
-
-    CLI_Print("[Station 모드] ");
-    result = ESP01_SendCommand("AT+CWMODE=1", "OK", 2000);
-    snprintf(msg, sizeof(msg), "결과: %d\r\n", result);
-    CLI_Print(msg);
-
-    CLI_Print("[WiFi 접속 시도] ");
-    result = ESP01_ConnectWiFi(WIFI_SSID, WIFI_PASSWORD);
-    snprintf(msg, sizeof(msg), "결과: %d, 응답: [%s]\r\n", result, ESP01_GetLastResponse());
-    CLI_Print(msg);
-    if (result != ESP01_OK) return;
-
     CLI_Print(">> WiFi 접속 성공!\r\n");
 
     HAL_Delay(1000);
 
+    CLI_Print("서버 연결 시도 중...\r\n");
     result = ESP01_ConnectServer(SERVER_IP, SERVER_PORT);
-    snprintf(msg, sizeof(msg), "[서버 연결] 결과: %d, 응답: [%s]\r\n", result, ESP01_GetLastResponse());
-    CLI_Print(msg);
+    if (result != ESP01_OK) {
+        CLI_Print(">> 서버 연결 실패 (IP/포트 확인 또는 서버가 안 켜져있음)\r\n");
+        return;
+    }
+    CLI_Print(">> 서버 연결 성공!\r\n");
+
 }
 
 
