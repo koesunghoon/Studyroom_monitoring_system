@@ -110,11 +110,23 @@ function rowWarning(r) {
     <td><span class="check-badge ${b.cls}">${b.icon} ${r.handled}</span></td>
   </tr>`;
 }
+function rowLostItem(r) {
+  const b = badgeFor(r.handled);
+  const distText = r.distance_m != null ? `${r.distance_m}m` : '-';
+  return `<tr>
+    <td class="mono-cell">${r.ts}</td><td>${r.seat}</td><td>${r.confidence}</td><td>${distText}</td>
+    <td><span class="check-badge ${b.cls}">${b.icon} ${r.handled}</span></td>
+  </tr>`;
+}
 
 async function refreshAllLogs() {
   refreshLogs('attendance', 'attendBody', rowAttendance);
   refreshLogs('patrol', 'patrolBody', rowPatrol);
   refreshLogs('warning', 'warnBody', rowWarning);
+
+  const lostRows = await refreshLogs('lost_items', 'lostBody', rowLostItem);
+  const pending = lostRows.filter((r) => r.handled === '확인 대기').length;
+  document.getElementById('kpiLostItems').textContent = pending;
 }
 
 /* ---------------- 탭 전환 ---------------- */
@@ -311,6 +323,58 @@ async function checkPatrolEvents() {
 let warningSeenIds = new Set();
 let warningFeedReady = false;
 
+/* ---------------- 분실물 이력 실시간 감지 -> 자동 알림 ---------------- */
+let lostItemSeenIds = new Set();
+let lostItemFeedReady = false;
+let currentLostItemAlertId = null;
+
+function showLostItemPin() {
+  document.getElementById('lostItemPin').classList.add('show');
+}
+function dismissLostItemAlert() {
+  document.getElementById('lostItemPin').classList.remove('show');
+}
+
+async function resolveLostItemAlert() {
+  if (currentLostItemAlertId != null) {
+    await fetch(`/api/lost_item/${currentLostItemAlertId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    refreshAllLogs();
+  }
+  dismissLostItemAlert();
+  currentLostItemAlertId = null;
+}
+
+async function checkLostItemEvents() {
+  try {
+    const res = await fetch('/api/logs/lost_items');
+    const rows = await res.json();
+    const ordered = [...rows].reverse(); // 오래된 순으로
+
+    ordered.forEach((r) => {
+      if (!lostItemSeenIds.has(r.id)) {
+        if (lostItemFeedReady) {
+          const distText = r.distance_m != null ? `${r.distance_m}m` : '거리 미확인';
+          currentLostItemAlertId = r.id;
+          document.getElementById('lostItemDesc').textContent =
+            `${r.seat}에 물건이 방치된 것 같아요.`;
+          document.getElementById('lostItemMeta').textContent =
+            `CAM01 · 확신도 ${Math.round(r.confidence * 100)}% · 거리 ${distText}`;
+          showLostItemPin();
+          pushEvent(`🎒 <b>${r.seat} 분실물 의심</b> (확신도 ${Math.round(r.confidence * 100)}%, 거리 ${distText})`, r.ts);
+        }
+        lostItemSeenIds.add(r.id);
+      }
+    });
+
+    lostItemFeedReady = true; // 첫 폴링은 기준선만 세팅
+  } catch (e) {
+    console.warn('lost item event check 실패', e);
+  }
+}
+
 async function checkWarningEvents() {
   try {
     const res = await fetch('/api/logs/warning');
@@ -350,10 +414,12 @@ refreshAllLogs();
 refreshMap();
 checkPatrolEvents(); // 기준선만 세팅, 이벤트 안 띄움
 checkWarningEvents(); // 기준선만 세팅, 이벤트 안 띄움
+checkLostItemEvents(); // 기준선만 세팅, 이벤트 안 띄움
 
 setInterval(refreshStatus, 5000);
 setInterval(refreshSeats, 15000);
 setInterval(refreshMap, 2000);
 setInterval(refreshAllLogs, 10000);    // 순찰/경고 로그 주기적 갱신
-setInterval(checkPatrolEvents, 2000);  // 순찰 시작/종료 실시간 감지
-setInterval(checkWarningEvents, 2000); // 실제 YOLO 감지 경고 실시간 감지
+setInterval(checkPatrolEvents, 2000);   // 순찰 시작/종료 실시간 감지
+setInterval(checkWarningEvents, 2000);  // 실제 YOLO 감지 경고 실시간 감지
+setInterval(checkLostItemEvents, 2000); // 분실물 실시간 감지

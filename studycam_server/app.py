@@ -11,7 +11,7 @@ import os
 import re
 import time
 import math
-import random
+import socket
 import sqlite3
 import threading
 from datetime import datetime
@@ -66,7 +66,11 @@ CONF_THRESHOLD = 0.5
 ALERT_CONF_THRESHOLD = 0.6
 ALERT_MIN_DURATION_SEC = 2.5  # 이 시간(초) 이상 "연속으로" 감지돼야 진짜 이벤트로 인정
 ALERT_COOLDOWN_SEC = 10
-ALERT_TRIGGER_CLASSES = {"fallen"}   # 추후 자리비움/분실물 클래스 추가되면 여기에 포함
+ALERT_TRIGGER_CLASSES = {"fallen"}
+
+# 분실물(가방) 감지 클래스 - TODO: 팀원이 학습한 실제 클래스 이름으로 교체 필요
+# (현재 best.pt에는 아직 이 클래스가 없어서, 모델 업데이트 전까지는 실제로 발동 안 함)
+LOST_ITEM_CLASSES = {"item"}
 
 BOX_COLORS = {
     "sit": (0, 200, 0),
@@ -322,6 +326,12 @@ def init_db():
     conn = get_db()
     conn.executescript(
         """
+        CREATE TABLE IF NOT EXISTS students (
+            student_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            fingerprint_slot INTEGER UNIQUE,
+            seat_no INTEGER
+        );
         CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ts TEXT NOT NULL,
@@ -357,17 +367,23 @@ def init_db():
         conn.execute("ALTER TABLE warning_log ADD COLUMN distance_m REAL")
         conn.commit()
 
-    # 최초 실행 시에만 샘플 데이터 시딩 (출결/경고는 아직 실연동 전이라 데모 데이터 유지)
-    if conn.execute("SELECT COUNT(*) c FROM attendance").fetchone()["c"] == 0:
-        seed = [
-            ("09:02:14", "S24-018", "07번", "입실", "정상"),
-            ("09:14:41", "S24-005", "12번", "입실", "정상"),
-            ("10:03:02", "S24-011", "-", "퇴실", "정상"),
+    # 학생 - 지문 슬롯 - 좌석 매핑 (지문 슬롯 번호를 좌석 번호와 동일하게 배정)
+    if conn.execute("SELECT COUNT(*) c FROM students").fetchone()["c"] == 0:
+        students_seed = [
+            ("S01", "김준혁", 1, 1),
+            ("S02", "고경민", 2, 2),
+            ("S03", "김재민", 3, 3),
+            ("S04", "고성훈", 4, 4),
+            ("S05", "고지훈", 5, 5),
+            ("S06", "이경한", 6, 6),
+            ("S07", "고롱롱", 7, 7),
         ]
         conn.executemany(
-            "INSERT INTO attendance (ts, student_id, seat, action, status) VALUES (?,?,?,?,?)",
-            seed,
+            "INSERT INTO students (student_id, name, fingerprint_slot, seat_no) VALUES (?,?,?,?)",
+            students_seed,
         )
+
+    # 출결 기록은 실제 지문 인식 연동 전까지는 비워둠 (가짜 데이터 넣지 않음)
     if conn.execute("SELECT COUNT(*) c FROM warning_log").fetchone()["c"] == 0:
         seed = [
             ("07:52:33", "05번", "물품 방치", 0.79, None, "확인됨"),
@@ -492,6 +508,89 @@ ros_thread.start()
 
 
 # ============================================================
+# 지문인식(STM32 + ESP01) 출결 수신 - 순수 TCP 소켓 서버
+# ESP01은 AT+CIPSEND로 순수 텍스트만 던지는 방식이라 HTTP(Flask, 5000번)와는
+# 별도 포트에서 받아야 함. 기대하는 메시지 형식: "FP,<지문 슬롯 번호>\n"
+# ============================================================
+FINGERPRINT_TCP_PORT = 5001
+
+
+def record_attendance(slot):
+    """지문 슬롯 번호를 받아서 학생을 조회하고, 입실/퇴실을 자동 판별해 출결 기록."""
+    conn = get_db()
+    student = conn.execute(
+        "SELECT * FROM students WHERE fingerprint_slot=?", (slot,)
+    ).fetchone()
+
+    if student is None:
+        conn.close()
+        print(f"[지문 출결] 슬롯 {slot} - 등록되지 않은 학생")
+        return
+
+    # 이 학생의 마지막 기록이 "입실"이면 이번엔 "퇴실"로, 아니면 "입실"로 토글
+    last = conn.execute(
+        "SELECT action FROM attendance WHERE student_id=? ORDER BY id DESC LIMIT 1",
+        (student["student_id"],),
+    ).fetchone()
+    action = "퇴실" if (last is not None and last["action"] == "입실") else "입실"
+
+    seat_text = f"{student['seat_no']}번 좌석" if student["seat_no"] is not None else "-"
+    now = datetime.now().strftime("%H:%M:%S")
+    conn.execute(
+        "INSERT INTO attendance (ts, student_id, seat, action, status) VALUES (?,?,?,?,?)",
+        (now, student["student_id"], seat_text, action, "정상"),
+    )
+    conn.commit()
+    conn.close()
+
+    if student["seat_no"] is not None:
+        set_seat_state_internal(student["seat_no"], "occupied" if action == "입실" else "empty")
+
+    print(f"[지문 출결] {student['name']}({student['student_id']}) - {action}")
+
+
+def handle_fingerprint_line(line):
+    line = line.strip()
+    if not line.startswith("FP,"):
+        return
+    try:
+        slot = int(line.split(",", 1)[1])
+    except (IndexError, ValueError):
+        print(f"[지문 출결] 형식 이상: {line!r}")
+        return
+    record_attendance(slot)
+
+
+def fingerprint_server_loop():
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("0.0.0.0", FINGERPRINT_TCP_PORT))
+    srv.listen(1)
+    print(f"지문 출결 TCP 서버 시작: 0.0.0.0:{FINGERPRINT_TCP_PORT}")
+
+    while True:
+        conn, addr = srv.accept()
+        print(f"[지문 출결] STM32 연결됨: {addr}")
+        buf = b""
+        try:
+            with conn:
+                while True:
+                    chunk = conn.recv(64)
+                    if not chunk:
+                        break
+                    buf += chunk
+                    while b"\n" in buf:
+                        line, buf = buf.split(b"\n", 1)
+                        handle_fingerprint_line(line.decode(errors="ignore"))
+        except Exception as e:
+            print(f"[지문 출결] 연결 처리 중 오류: {e}")
+
+
+fingerprint_thread = threading.Thread(target=fingerprint_server_loop, daemon=True)
+fingerprint_thread.start()
+
+
+# ============================================================
 # 페이지
 # ============================================================
 @app.route("/")
@@ -583,10 +682,8 @@ def get_seats():
     global _seat_cache
     if _seat_cache is None:
         _seat_cache = []
-        for i in range(SEAT_COUNT):
-            r = random.random()
-            state = "occupied" if r < 0.62 else "empty"
-            _seat_cache.append({"no": i + 1, "state": state})
+        for seat_no in range(1, SEAT_COUNT + 1):
+            _seat_cache.append({"no": seat_no, "state": get_seat_state_from_attendance(seat_no)})
     return _seat_cache
 
 
@@ -596,6 +693,53 @@ def set_seat_state_internal(seat_no, state):
     for s in seats:
         if s["no"] == seat_no:
             s["state"] = state
+
+
+def get_seat_state_from_attendance(seat_no):
+    """이 좌석에 배정된 학생이 지금 입실 상태인지 DB 기준으로 확인."""
+    conn = get_db()
+    student = conn.execute(
+        "SELECT student_id FROM students WHERE seat_no=?", (seat_no,)
+    ).fetchone()
+    if student is None:
+        conn.close()
+        return "empty"
+
+    last = conn.execute(
+        "SELECT action FROM attendance WHERE student_id=? ORDER BY id DESC LIMIT 1",
+        (student["student_id"],),
+    ).fetchone()
+    conn.close()
+    return "occupied" if (last is not None and last["action"] == "입실") else "empty"
+
+
+def force_checkout_seat(seat_no):
+    """위급상황 조치 완료 시, 그 좌석 학생을 강제로 퇴실 처리 (실제 출결 기록도 남김)."""
+    conn = get_db()
+    student = conn.execute(
+        "SELECT * FROM students WHERE seat_no=?", (seat_no,)
+    ).fetchone()
+
+    if student is None:
+        conn.close()
+        set_seat_state_internal(seat_no, "empty")
+        return
+
+    last = conn.execute(
+        "SELECT action FROM attendance WHERE student_id=? ORDER BY id DESC LIMIT 1",
+        (student["student_id"],),
+    ).fetchone()
+
+    if last is not None and last["action"] == "입실":
+        now = datetime.now().strftime("%H:%M:%S")
+        conn.execute(
+            "INSERT INTO attendance (ts, student_id, seat, action, status) VALUES (?,?,?,?,?)",
+            (now, student["student_id"], f"{seat_no}번 좌석", "퇴실", "정상"),
+        )
+        conn.commit()
+
+    conn.close()
+    set_seat_state_internal(seat_no, "empty")
 
 
 @app.route("/api/seats")
@@ -655,15 +799,52 @@ def resolve_warning(warning_id):
     conn.commit()
     conn.close()
 
-    # "N번 좌석" 형식에서 번호 추출해서 빈 좌석으로 되돌림
+    # "N번 좌석" 형식에서 번호 추출해서 강제 퇴실 처리 (위급상황 조치 완료 = 퇴실로 간주)
     match = re.match(r"(\d+)번 좌석", row["seat"] or "")
     if match:
-        set_seat_state_internal(int(match.group(1)), "empty")
+        force_checkout_seat(int(match.group(1)))
 
     # 쓰러짐 감지였다면, 조치 완료됐으니 다시 새로운 상황으로 감지 가능하게 리셋
     if row["wtype"] == "쓰러짐 의심":
         _alert_active["fallen"] = False
         _streak_start_ts["fallen"] = None
+
+    return jsonify({"ok": True})
+
+
+# ============================================================
+# API: 분실물 이력 조회 / 조치 완료
+# (별도 테이블 안 만들고 warning_log를 wtype='분실물 의심'으로 필터링해서 재사용)
+# ============================================================
+@app.route("/api/logs/lost_items")
+def api_logs_lost_items():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM warning_log WHERE wtype='분실물 의심' ORDER BY id DESC LIMIT 50"
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/lost_item/<int:item_id>/resolve", methods=["POST"])
+def resolve_lost_item(item_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT * FROM warning_log WHERE id=? AND wtype='분실물 의심'", (item_id,)
+    ).fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({"ok": False, "error": "해당 분실물 기록을 찾을 수 없습니다"}), 404
+
+    conn.execute("UPDATE warning_log SET handled=? WHERE id=?", ("완료", item_id))
+    conn.commit()
+    conn.close()
+
+    # 조치 완료됐으니, 같은 자리에 또 새 분실물이 생기면 다시 감지되도록 리셋
+    for cls in LOST_ITEM_CLASSES:
+        _alert_active[cls] = False
+        _streak_start_ts[cls] = None
 
     return jsonify({"ok": True})
 
@@ -686,12 +867,15 @@ def gen_frames():
         # 이번 프레임에서 각 클래스별로 감지된 "최고 신뢰도 박스" 하나씩만 기록
         # (연속 프레임 판정 + 위치 계산에 이 박스의 cx, cy, 거리를 그대로 씀)
         best_detection_this_frame = {}
+        detected_labels_this_frame = set()  # 분실물 판정 시 "사람이 없는지" 확인용
 
         for box in results.boxes:
             label = CLASS_NAMES[int(box.cls[0])]
             conf = float(box.conf[0])
             if conf < CONF_THRESHOLD:
                 continue
+
+            detected_labels_this_frame.add(label)
 
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             color = BOX_COLORS.get(label, (255, 255, 255))
@@ -709,17 +893,21 @@ def gen_frames():
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
             )
 
-            if label in ALERT_TRIGGER_CLASSES and conf >= ALERT_CONF_THRESHOLD:
+            if label in (ALERT_TRIGGER_CLASSES | LOST_ITEM_CLASSES) and conf >= ALERT_CONF_THRESHOLD:
                 cur = best_detection_this_frame.get(label)
                 if cur is None or conf > cur["conf"]:
                     best_detection_this_frame[label] = {
                         "conf": conf, "cx": cx, "cy": cy, "dist_m": dist_m,
                     }
 
+        person_present_this_frame = "sit" in detected_labels_this_frame
+
         # 연속 감지 "지속 시간" 판정: 이번 프레임에 감지 안 됐으면 스트릭 초기화
         # (프레임 개수가 아니라 실제 경과 시간(초)으로 재서, 처리 속도가 빨라져도
         #  로봇이 회전하는 짧은 순간에 오발동하지 않도록 함)
         now_ts = time.time()
+
+        # ---- 쓰러짐 판정 ----
         for cls in ALERT_TRIGGER_CLASSES:
             if cls in best_detection_this_frame:
                 if _streak_start_ts.get(cls) is None:
@@ -757,6 +945,45 @@ def gen_frames():
 
                     _last_alert_ts[cls] = now_ts
                     _alert_active[cls] = True
+
+        # ---- 분실물 판정 (사람이 없을 때만) ----
+        for cls in LOST_ITEM_CLASSES:
+            if cls in best_detection_this_frame and not person_present_this_frame:
+                if _streak_start_ts.get(cls) is None:
+                    _streak_start_ts[cls] = now_ts
+            else:
+                _streak_start_ts[cls] = None
+                _alert_active[cls] = False
+                continue
+
+            streak_duration = now_ts - _streak_start_ts[cls]
+            if streak_duration >= ALERT_MIN_DURATION_SEC:
+                if not _alert_active.get(cls, False):
+                    det = best_detection_this_frame[cls]
+
+                    with _state_lock:
+                        pose_snapshot = dict(_robot_pose)
+                    map_xy = pixel_depth_to_map_xy(det["cx"], det["cy"], det["dist_m"], pose_snapshot)
+                    room_no = find_room(map_xy)
+
+                    # 방을 특정 못 하면 "공석 여부" 자체를 확인할 수 없으니 발동 보류
+                    # (streak는 유지되니 다음 프레임에 조건 맞으면 바로 재시도됨)
+                    seat_confirmed_empty = (
+                        room_no is not None
+                        and get_seat_state_from_attendance(room_no) == "empty"
+                    )
+
+                    if seat_confirmed_empty:
+                        seat_label = f"{room_no}번 좌석"
+                        print(
+                            f"[분실물 판정 디버그] 연속감지 {streak_duration:.2f}초 | room_no={room_no}"
+                        )
+                        insert_warning(
+                            seat_label, "분실물 의심", det["conf"],
+                            distance_m=det["dist_m"], handled="확인 대기",
+                        )
+                        _last_alert_ts[cls] = now_ts
+                        _alert_active[cls] = True
 
         ok, buf = cv2.imencode(".jpg", frame)
         if not ok:

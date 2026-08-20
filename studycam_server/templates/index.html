@@ -57,6 +57,13 @@
           <div class="kpi-value" id="kpiPatrolState">-</div>
         </div>
       </div>
+      <div class="kpi kpi-big">
+        <div class="kpi-icon">🎒</div>
+        <div class="kpi-body">
+          <div class="kpi-label">분실물 현황</div>
+          <div class="kpi-value"><span id="kpiLostItems">0</span><span class="kpi-unit"> 건</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="row row-cam-map">
@@ -116,6 +123,7 @@
         <button class="tab-btn active" data-tab="attend">출결 관리</button>
         <button class="tab-btn" data-tab="patrol">순찰 로그</button>
         <button class="tab-btn" data-tab="warn">경고 이력</button>
+        <button class="tab-btn" data-tab="lost">분실물</button>
       </div>
       <div class="ledger">
         <div class="tab-panel active" id="tab-attend">
@@ -134,6 +142,12 @@
           <div class="table-wrap"><table>
             <thead><tr><th>시각</th><th>좌석</th><th>유형</th><th>신뢰도</th><th>거리</th><th>처리</th></tr></thead>
             <tbody id="warnBody"></tbody>
+          </table></div>
+        </div>
+        <div class="tab-panel" id="tab-lost">
+          <div class="table-wrap"><table>
+            <thead><tr><th>시각</th><th>좌석</th><th>신뢰도</th><th>거리</th><th>처리</th></tr></thead>
+            <tbody id="lostBody"></tbody>
           </table></div>
         </div>
       </div>
@@ -160,6 +174,18 @@
     <div class="alert-actions">
       <button class="primary" onclick="resolveAlert('완료')">조치 완료</button>
       <button onclick="resolveAlert('오탐')">오탐이에요</button>
+    </div>
+  </div>
+</div>
+
+<div class="alert-pin" id="lostItemPin">
+  <div class="alert-note">
+    <div class="pin-dot"></div>
+    <div class="alert-title">🎒 분실물 의심</div>
+    <div class="alert-desc" id="lostItemDesc">7번 좌석에 물건이 방치된 것 같아요.</div>
+    <div class="alert-meta" id="lostItemMeta">CAM01 · 확신도 94%</div>
+    <div class="alert-actions">
+      <button class="primary" onclick="resolveLostItemAlert()">조치 완료</button>
     </div>
   </div>
 </div>
