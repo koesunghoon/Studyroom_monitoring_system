@@ -115,8 +115,8 @@
   .card-head-right{ margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--muted); }
 
   /* ---------- kpi ---------- */
-  .kpi-row{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
-  @media (max-width:900px){ .kpi-row{ grid-template-columns:repeat(2,1fr); } }
+  .kpi-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:900px){ .kpi-row{ grid-template-columns:repeat(3,1fr); } }
   .kpi{ padding:16px 16px 14px; }
   .kpi-label{ font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.03em; }
   .kpi-value{ font-family:var(--hand); font-weight:700; font-size:30px; margin-top:4px; }
@@ -214,7 +214,7 @@
     box-shadow:0 5px 12px -6px rgba(43,46,58,.35); font-family:var(--hand);
   }
   .sticky:nth-child(odd){ transform:rotate(-1.4deg); }
-  .sticky:nth-child(even){ transform:rotate(1.1deg); background:#dcean; }
+  .sticky:nth-child(even){ transform:rotate(1.1deg); background: #dceadc; }
   .sticky-msg{ font-size:14px; font-weight:700; color:#4a3a12; line-height:1.4; }
   .sticky-time{ font-family:var(--mono); font-weight:400; font-size:9.5px; color:#6b5726; margin-top:6px; }
 
@@ -254,3 +254,16 @@
   }
   .alert-actions button.primary{ background:var(--brick); color:#fff; }
   .alert-actions button:not(.primary){ background:rgba(255,255,255,.55); color:#7a2c22; }
+  .alert-actions button.primary{ background:var(--brick); color:#fff; }
+  .alert-actions button:not(.primary){ background:rgba(255,255,255,.55); color:#7a2c22; }
+
+  /* 분실물 팝업은 위급상황 팝업과 겹치지 않게 아래쪽에 뜨도록 */
+  #lostItemPin{ top:290px; }
+
+  /* 분실물 팝업 색상을 위급상황(빨강)과 구분되는 주의(노랑) 톤으로 */
+  #lostItemPin .alert-note{ background:#f3ddb0; }
+  #lostItemPin .pin-dot{ background:radial-gradient(circle at 35% 30%, #f0c168, var(--mustard) 70%); }
+  #lostItemPin .alert-title{ color:#7a5613; }
+  #lostItemPin .alert-desc{ color:#6b4d1f; }
+  #lostItemPin .alert-meta{ color:#8a6a30; }
+  #lostItemPin .alert-actions button.primary{ background:var(--mustard); }
