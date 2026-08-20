@@ -10,6 +10,7 @@
 #include "rfid.h"
 #include "usart.h"
 #include "esp01.h"
+#include "servo.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -138,6 +139,10 @@ static void CLI_MenuEnroll(void)
     result = AS608_StoreChar(1, pageID);
     snprintf(msg, sizeof(msg), "\r\n>> Store: %s (슬롯 %d)\r\n", CLI_ErrorToString(result), pageID);
     CLI_Print(msg);
+
+    // CLI Print 추가
+    CLI_Print("\r\n[알림] studycam 서버 students 테이블에도 이 슬롯 번호로\r\n");
+    CLI_Print("       학생 정보를 등록해두어야 출결이 정상 기록됩니다.\r\n");
 }
 
 static void CLI_MenuVerify(void)
@@ -155,6 +160,30 @@ static void CLI_MenuVerify(void)
         snprintf(msg, sizeof(msg), "\r\n>> 인식 성공! 슬롯: %d, 매칭점수: %d\r\n",
                   matchID, matchScore);
         CLI_Print(msg);
+
+        /* [추가] 서버(studycam)로 출결 결과 전송
+           app.py가 5001번 포트에서 순수 TCP로 "FP,<슬롯번호>\n" 형식을 받아
+           students 테이블 조회 -> attendance 테이블에 입실/퇴실 자동 기록함.
+           연결이 안 되어 있으면(부팅 시 자동연결 실패 등) 실패 메시지만 출력하고
+           지문 인식 자체는 정상 진행됨 (전송 실패가 인식 실패는 아님). */
+        {
+            char sendBuf[16];
+            int sendLen = snprintf(sendBuf, sizeof(sendBuf), "FP,%d\n", matchID);
+            uint8_t sendResult = ESP01_SendData(sendBuf, (uint16_t)sendLen);
+
+            if (sendResult == ESP01_OK) {
+                CLI_Print(">> 서버로 출결 전송 완료\r\n");
+            } else {
+                CLI_Print(">> 서버 전송 실패 (WiFi/서버 연결 상태 확인 필요, 메뉴 4번으로 재연결 가능)\r\n");
+            }
+        }
+        
+        CLI_Print(">> 문 열림\r\n");
+        Servo_Open();
+        HAL_Delay(3000); // 문 열려있는 시간 (필요에 맞게 조정)
+        CLI_Print(">> 문 닫힘\r\n");
+        Servo_Close();
+
     } else {
         snprintf(msg, sizeof(msg), "\r\n>> 인식 실패: %s (코드: 0x%02X)\r\n",
                   CLI_ErrorToString(result), result);
