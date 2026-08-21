@@ -90,8 +90,9 @@ async function refreshLogs(kind, tbodyId, rowFn) {
 
 function rowAttendance(r) {
   const b = badgeFor(r.status);
+  const displayName = r.student_name || r.student_id;
   return `<tr>
-    <td class="mono-cell">${r.ts}</td><td>${r.student_id}</td><td>${r.seat}</td><td>${r.action}</td>
+    <td class="mono-cell">${r.ts}</td><td>${displayName}</td><td>${r.seat}</td><td>${r.action}</td>
     <td><span class="check-badge ${b.cls}">${b.icon} ${r.status}</span></td>
   </tr>`;
 }
@@ -257,12 +258,18 @@ resizeCanvas();
 
 /* ---------------- 이벤트 피드 (스티키노트) ---------------- */
 const eventFeed = document.getElementById('eventFeed');
-function pushEvent(msg, time) {
+function pushEvent(msg, time, autoDismissMs) {
   const el = document.createElement('div');
   el.className = 'sticky';
   el.innerHTML = `<div class="sticky-msg">${msg}</div><div class="sticky-time">${time || new Date().toLocaleTimeString('ko-KR', { hour12: false })}</div>`;
   eventFeed.prepend(el);
   while (eventFeed.children.length > 12) eventFeed.removeChild(eventFeed.lastChild);
+
+  if (autoDismissMs) {
+    setTimeout(() => {
+      if (el.parentNode === eventFeed) eventFeed.removeChild(el);
+    }, autoDismissMs);
+  }
 }
 
 /* ---------------- 위급상황 알림 카드 ---------------- */
@@ -316,6 +323,52 @@ async function checkPatrolEvents() {
     patrolFeedReady = true;
   } catch (e) {
     console.warn('patrol event check 실패', e);
+  }
+}
+
+/* ---------------- 출결 알림 토스트 (버튼 없이 5초 후 자동으로 사라짐) ---------------- */
+let attendanceToastTimeout = null;
+
+function showAttendanceToast(icon, msg) {
+  const toast = document.getElementById('attendanceToast');
+  document.getElementById('attendanceToastTitle').textContent = `${icon} 출결 알림`;
+  document.getElementById('attendanceToastDesc').textContent = msg;
+  toast.classList.add('show');
+
+  clearTimeout(attendanceToastTimeout);
+  attendanceToastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 5000);
+}
+
+/* ---------------- 출결 이벤트 실시간 감지 -> 이벤트 피드 ---------------- */
+let attendanceSeenIds = new Set();
+let attendanceFeedReady = false;
+
+async function checkAttendanceEvents() {
+  try {
+    const res = await fetch('/api/logs/attendance');
+    const rows = await res.json();
+    const ordered = [...rows].reverse(); // 오래된 순으로
+
+    let hasNew = false;
+    ordered.forEach((r) => {
+      if (!attendanceSeenIds.has(r.id)) {
+        if (attendanceFeedReady) {
+          const icon = r.action === '입실' ? '🖐️' : '🚪';
+          const displayName = r.student_name || r.student_id;
+          pushEvent(`${icon} <b>${displayName}</b> 학생 ${r.seat} ${r.action}`, r.ts); // 이벤트 피드에는 계속 남음
+          showAttendanceToast(icon, `${displayName} 학생 ${r.seat} ${r.action}`); // 옆 알림은 5초 후 자동 소멸
+          hasNew = true;
+        }
+        attendanceSeenIds.add(r.id);
+      }
+    });
+
+    attendanceFeedReady = true; // 첫 폴링은 기준선만 세팅
+    if (hasNew) refreshSeats(); // 폴링 주기 안 기다리고 좌석 UI 바로 갱신
+  } catch (e) {
+    console.warn('attendance event check 실패', e);
   }
 }
 
@@ -392,6 +445,7 @@ async function checkWarningEvents() {
             document.getElementById('alertMeta').textContent =
               `CAM01 · 확신도 ${Math.round(r.confidence * 100)}% · 거리 ${distText}`;
             showPin();
+            refreshSeats(); // 감지 즉시 좌석이 위급상황으로 바뀐 걸 폴링 주기 안 기다리고 바로 반영
             pushEvent(`🚨 <b>${r.seat} 쓰러짐 의심</b> (확신도 ${Math.round(r.confidence * 100)}%, 거리 ${distText})`, r.ts);
           } else {
             pushEvent(`⚠️ ${r.seat} — ${r.wtype} 감지`, r.ts);
@@ -413,13 +467,15 @@ refreshSeats();
 refreshAllLogs();
 refreshMap();
 checkPatrolEvents(); // 기준선만 세팅, 이벤트 안 띄움
+checkAttendanceEvents(); // 기준선만 세팅, 이벤트 안 띄움
 checkWarningEvents(); // 기준선만 세팅, 이벤트 안 띄움
 checkLostItemEvents(); // 기준선만 세팅, 이벤트 안 띄움
 
 setInterval(refreshStatus, 5000);
-setInterval(refreshSeats, 15000);
+setInterval(refreshSeats, 5000);
 setInterval(refreshMap, 2000);
 setInterval(refreshAllLogs, 10000);    // 순찰/경고 로그 주기적 갱신
-setInterval(checkPatrolEvents, 2000);   // 순찰 시작/종료 실시간 감지
-setInterval(checkWarningEvents, 2000);  // 실제 YOLO 감지 경고 실시간 감지
-setInterval(checkLostItemEvents, 2000); // 분실물 실시간 감지
+setInterval(checkPatrolEvents, 2000);     // 순찰 시작/종료 실시간 감지
+setInterval(checkAttendanceEvents, 2000); // 지문 출결 실시간 감지
+setInterval(checkWarningEvents, 2000);    // 실제 YOLO 감지 경고 실시간 감지
+setInterval(checkLostItemEvents, 2000);   // 분실물 실시간 감지

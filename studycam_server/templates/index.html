@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STUDYCAM 순찰일지</title>
+<title>Studyroom monitoring system</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -15,27 +15,13 @@
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo-badge"><span>SC</span></div>
-    <div>
-      <div class="brand-title">STUDYCAM 순찰일지</div>
-      <div class="brand-sub">UNMANNED STUDY-ROOM PATROL LOG</div>
-    </div>
+    <div class="brand-title">Studyroom monitoring system</div>
     <div class="top-stat">📍 <b id="robotZone">열람실</b></div>
 
     <div class="topbar-right">
       <div class="batt-pill"><span class="batt-dot"></span>배터리 <b id="robotBattery" style="color:var(--ink)">--%</b></div>
       <div class="clock-note"><b id="clockTime">--:--:--</b><span id="clockDate">----.--.--</span></div>
     </div>
-  </div>
-
-  <!-- NAV -->
-  <div class="nav">
-    <div class="tab-item active">개요</div>
-    <div class="tab-item">캠</div>
-    <div class="tab-item">맵</div>
-    <div class="tab-item">좌석</div>
-    <div class="tab-item">기록</div>
-    <div class="nav-gap"></div>
   </div>
 
   <!-- MAIN -->
@@ -70,9 +56,6 @@
       <!-- CAMERA (실제 /video_feed 스트리밍) -->
       <div class="card">
         <div class="tape yellow" style="left:38%; width:80px;"></div>
-        <div class="card-head">
-          <span class="card-eyebrow">live cam</span><span class="card-title">순찰봇 눈으로 보기</span>
-        </div>
         <div class="polaroid-wrap">
           <div class="polaroid">
             <div class="cam-body" id="camBody">
@@ -106,7 +89,7 @@
     <div class="card">
       <div class="tape yellow" style="left:8%; width:90px;"></div>
       <div class="card-head">
-        <span class="card-eyebrow">yolov8 · seat check</span><span class="card-title">오늘의 좌석 체크</span>
+        <span class="card-title">오늘의 좌석 체크</span>
       </div>
       <div class="legend-row">
         <span><span class="mark" style="color:var(--sage)">✓</span>착석</span>
@@ -128,7 +111,7 @@
       <div class="ledger">
         <div class="tab-panel active" id="tab-attend">
           <div class="table-wrap"><table>
-            <thead><tr><th>시각</th><th>학생 ID</th><th>좌석</th><th>구분</th><th>상태</th></tr></thead>
+            <thead><tr><th>시각</th><th>이름</th><th>좌석</th><th>구분</th><th>상태</th></tr></thead>
             <tbody id="attendBody"></tbody>
           </table></div>
         </div>
@@ -175,6 +158,14 @@
       <button class="primary" onclick="resolveAlert('완료')">조치 완료</button>
       <button onclick="resolveAlert('오탐')">오탐이에요</button>
     </div>
+  </div>
+</div>
+
+<div class="alert-pin" id="attendanceToast" style="top:490px;">
+  <div class="alert-note" style="background:#dcefe0; box-shadow:0 14px 30px -10px rgba(43,46,58,.45);">
+    <div class="pin-dot" style="background:radial-gradient(circle at 35% 30%, #8fcf9c, #6f9468 70%);"></div>
+    <div class="alert-title" id="attendanceToastTitle" style="color:#2f5a3a;">🖐️ 출결 알림</div>
+    <div class="alert-desc" id="attendanceToastDesc" style="color:#2f5a3a;">-</div>
   </div>
 </div>
 

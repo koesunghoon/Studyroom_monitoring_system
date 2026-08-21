@@ -68,8 +68,7 @@ ALERT_MIN_DURATION_SEC = 2.5  # 이 시간(초) 이상 "연속으로" 감지돼�
 ALERT_COOLDOWN_SEC = 10
 ALERT_TRIGGER_CLASSES = {"fallen"}
 
-# 분실물(가방) 감지 클래스 - TODO: 팀원이 학습한 실제 클래스 이름으로 교체 필요
-# (현재 best.pt에는 아직 이 클래스가 없어서, 모델 업데이트 전까지는 실제로 발동 안 함)
+# 분실물 감지 클래스 (best.pt 학습 완료, 클래스명 확정됨)
 LOST_ITEM_CLASSES = {"item"}
 
 BOX_COLORS = {
@@ -772,8 +771,20 @@ def api_logs(kind):
     table = _LOG_TABLES.get(kind)
     if not table:
         return jsonify({"error": "unknown log kind"}), 404
+
     conn = get_db()
-    rows = conn.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 50").fetchall()
+    if kind == "attendance":
+        # student_id(예: S01)는 그대로 두고, 화면 표시용 이름만 조인해서 같이 내려줌
+        rows = conn.execute(
+            """
+            SELECT a.*, s.name AS student_name
+            FROM attendance a
+            LEFT JOIN students s ON a.student_id = s.student_id
+            ORDER BY a.id DESC LIMIT 50
+            """
+        ).fetchall()
+    else:
+        rows = conn.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT 50").fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
