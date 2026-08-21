@@ -1,0 +1,48 @@
+[0.029s] Invoking command in '/home/vboxuser/turtlebot3_ws/build/turtlebot3_msgs': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/vboxuser/turtlebot3_ws/install/turtlebot3_msgs
+[0.499s] -- The C compiler identification is GNU 11.4.0
+[0.766s] -- The CXX compiler identification is GNU 11.4.0
+[0.797s] -- Detecting C compiler ABI info
+[0.915s] -- Detecting C compiler ABI info - done
+[0.923s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.924s] -- Detecting C compile features
+[0.925s] -- Detecting C compile features - done
+[0.934s] -- Detecting CXX compiler ABI info
+[1.046s] -- Detecting CXX compiler ABI info - done
+[1.054s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[1.054s] -- Detecting CXX compile features
+[1.055s] -- Detecting CXX compile features - done
+[1.056s] -- Found action_msgs: 1.2.3 (/opt/ros/humble/share/action_msgs/cmake)
+[1.223s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[1.286s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[1.331s] -- Found rosidl_generator_c: 3.1.9 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[1.335s] -- Found rosidl_adapter: 3.1.9 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[1.342s] -- Found rosidl_generator_cpp: 3.1.9 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[1.370s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.386s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.420s] -- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+[1.430s] -- Found std_msgs: 4.9.1 (/opt/ros/humble/share/std_msgs/cmake)
+[1.442s] -- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)
+[1.923s] [31mCMake Error at /opt/ros/humble/share/rosidl_generator_c/cmake/rosidl_generator_c_generate_interfaces.cmake:179 (find_package):
+[1.923s]   By not providing "Findament_cmake_cppcheck.cmake" in CMAKE_MODULE_PATH this
+[1.923s]   project has asked CMake to find a package configuration file provided by
+[1.924s]   "ament_cmake_cppcheck", but CMake did not find one.
+[1.924s] 
+[1.924s]   Could not find a package configuration file provided by
+[1.924s]   "ament_cmake_cppcheck" with any of the following names:
+[1.924s] 
+[1.924s]     ament_cmake_cppcheckConfig.cmake
+[1.924s]     ament_cmake_cppcheck-config.cmake
+[1.924s] 
+[1.924s]   Add the installation prefix of "ament_cmake_cppcheck" to CMAKE_PREFIX_PATH
+[1.924s]   or set "ament_cmake_cppcheck_DIR" to a directory containing one of the
+[1.924s]   above files.  If "ament_cmake_cppcheck" provides a separate development
+[1.924s]   package or SDK, be sure it has been installed.
+[1.924s] Call Stack (most recent call first):
+[1.924s]   /opt/ros/humble/share/ament_cmake_core/cmake/core/ament_execute_extensions.cmake:48 (include)
+[1.924s]   /opt/ros/humble/share/rosidl_cmake/cmake/rosidl_generate_interfaces.cmake:286 (ament_execute_extensions)
+[1.924s]   CMakeLists.txt:47 (rosidl_generate_interfaces)
+[1.925s] 
+[1.925s] [0m
+[1.926s] -- Configuring incomplete, errors occurred!
+[1.926s] See also "/home/vboxuser/turtlebot3_ws/build/turtlebot3_msgs/CMakeFiles/CMakeOutput.log".
+[1.944s] Invoked command in '/home/vboxuser/turtlebot3_ws/build/turtlebot3_msgs' returned '1': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/vboxuser/turtlebot3_ws/install/turtlebot3_msgs

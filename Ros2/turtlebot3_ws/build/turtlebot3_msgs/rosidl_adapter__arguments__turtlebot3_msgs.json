@@ -1,0 +1,12 @@
+{
+  "package_name": "turtlebot3_msgs",
+  "non_idl_tuples": [
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:msg/SensorState.msg",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:msg/Sound.msg",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:msg/VersionInfo.msg",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:srv/Sound.srv",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:srv/Dqn.srv",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:srv/Goal.srv",
+    "/home/vboxuser/turtlebot3_ws/src/turtlebot3_msgs:action/Patrol.action"
+  ]
+}

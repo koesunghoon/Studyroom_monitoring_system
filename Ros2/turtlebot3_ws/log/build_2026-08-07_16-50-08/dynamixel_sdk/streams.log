@@ -1,0 +1,204 @@
+[0.032s] Invoking command in '/home/vboxuser/turtlebot3_ws/build/dynamixel_sdk': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/vboxuser/turtlebot3_ws/build/dynamixel_sdk -- -j4 -l4
+[0.106s] [35m[1mConsolidate compiler generated dependencies of target dynamixel_sdk[0m
+[0.147s] [  0%] Built target ament_cmake_python_symlink_dynamixel_sdk
+[0.175s] [100%] Built target dynamixel_sdk
+[0.175s] [100%] Built target ament_cmake_python_symlink_dynamixel_easy_sdk
+[0.458s] running egg_info
+[0.460s] writing dynamixel_easy_sdk.egg-info/PKG-INFO
+[0.460s] writing dependency_links to dynamixel_easy_sdk.egg-info/dependency_links.txt
+[0.463s] writing top-level names to dynamixel_easy_sdk.egg-info/top_level.txt
+[0.467s] reading manifest file 'dynamixel_easy_sdk.egg-info/SOURCES.txt'
+[0.467s] writing manifest file 'dynamixel_easy_sdk.egg-info/SOURCES.txt'
+[0.502s] [100%] Built target ament_cmake_python_build_dynamixel_easy_sdk_egg
+[0.530s] running egg_info
+[0.532s] writing dynamixel_sdk.egg-info/PKG-INFO
+[0.533s] writing dependency_links to dynamixel_sdk.egg-info/dependency_links.txt
+[0.541s] writing top-level names to dynamixel_sdk.egg-info/top_level.txt
+[0.545s] reading manifest file 'dynamixel_sdk.egg-info/SOURCES.txt'
+[0.552s] writing manifest file 'dynamixel_sdk.egg-info/SOURCES.txt'
+[0.627s] [100%] Built target ament_cmake_python_build_dynamixel_sdk_egg
+[0.648s] Invoked command in '/home/vboxuser/turtlebot3_ws/build/dynamixel_sdk' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/vboxuser/turtlebot3_ws/build/dynamixel_sdk -- -j4 -l4
+[0.659s] Invoking command in '/home/vboxuser/turtlebot3_ws/build/dynamixel_sdk': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/vboxuser/turtlebot3_ws/build/dynamixel_sdk
+[0.688s] -- Install configuration: ""
+[0.688s] -- Execute custom install script
+[0.688s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/connector.hpp
+[0.719s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/control_table.hpp
+[0.744s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/data_types.hpp
+[0.773s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/dynamixel_easy_sdk.hpp
+[0.803s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/dynamixel_error.hpp
+[0.829s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/group_executor.hpp
+[0.850s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_easy_sdk/motor.hpp
+[0.872s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/dynamixel_sdk.h
+[0.897s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_bulk_read.h
+[0.934s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_bulk_write.h
+[0.958s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_fast_bulk_read.h
+[0.991s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_fast_sync_read.h
+[1.013s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_handler.h
+[1.044s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_sync_read.h
+[1.052s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/group_sync_write.h
+[1.158s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/packet_handler.h
+[1.159s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/port_handler.h
+[1.161s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/port_handler_arduino.h
+[1.224s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/port_handler_linux.h
+[1.225s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/port_handler_mac.h
+[1.235s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/port_handler_windows.h
+[1.245s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/protocol1_packet_handler.h
+[1.260s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/include//dynamixel_sdk/protocol2_packet_handler.h
+[1.291s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/2xc430_w250.model
+[1.312s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/2xl430_w250.model
+[1.326s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/dynamixel.model
+[1.353s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/h42_20_s300_ra.model
+[1.378s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/h54_100_s500_ra.model
+[1.402s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/h54_200_s500_ra.model
+[1.413s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/m42_10_s260_ra.model
+[1.431s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/m54_40_s250_ra.model
+[1.465s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/m54_60_s250_ra.model
+[1.485s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/mx_106.model
+[1.509s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/mx_28.model
+[1.518s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/mx_64.model
+[1.565s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ph42_020_s300.model
+[1.566s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ph54_100_s500.model
+[1.570s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ph54_200_s500.model
+[1.618s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/pm42_010_s260.model
+[1.629s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/pm54_040_s250.model
+[1.641s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/pm54_060_s250.model
+[1.651s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/rh_p12_rn.model
+[1.671s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_m181.model
+[1.693s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_m181_fw52.model
+[1.708s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_m288.model
+[1.732s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_m288_fw52.model
+[1.752s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_t181.model
+[1.788s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_t181_fw52.model
+[1.853s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_t288.model
+[1.876s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc330_t288_fw52.model
+[2.039s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc430_w150.model
+[2.056s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xc430_w240.model
+[2.088s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xd430_t210.model
+[2.141s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xd430_t350.model
+[2.159s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xd540_t150.model
+[2.172s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xd540_t270.model
+[2.187s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh430_v210.model
+[2.201s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh430_v350.model
+[2.215s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh430_w210.model
+[2.243s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh430_w350.model
+[2.285s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh540_v150.model
+[2.330s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh540_v270.model
+[2.362s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh540_w150.model
+[2.381s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xh540_w270.model
+[2.401s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl320.model
+[2.421s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl330_m077.model
+[2.441s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl330_m077_fw52.model
+[2.476s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl330_m288.model
+[2.512s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl330_m288_fw52.model
+[2.541s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xl430_w250.model
+[2.559s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xm430_w210.model
+[2.578s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xm430_w350.model
+[2.587s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xm540_w150.model
+[2.599s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xm540_w270.model
+[2.610s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xw430_t200.model
+[2.624s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xw430_t333.model
+[2.648s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xw540_h260.model
+[2.648s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xw540_t140.model
+[2.668s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/xw540_t260.model
+[2.693s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_a051.model
+[2.706s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_a099.model
+[2.706s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_b001.model
+[2.739s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_m001.model
+[2.773s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_r051.model
+[2.784s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym070_210_r099.model
+[2.825s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_a051.model
+[2.835s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_a099.model
+[2.854s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_b001.model
+[2.876s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_m001.model
+[2.894s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_r051.model
+[2.929s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/control_table/ym080_230_r099.model
+[2.948s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/pythonpath.sh
+[2.960s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/pythonpath.dsv
+[2.988s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk-4.0.5-py3.10.egg-info/PKG-INFO
+[3.000s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk-4.0.5-py3.10.egg-info/SOURCES.txt
+[3.017s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk-4.0.5-py3.10.egg-info/dependency_links.txt
+[3.032s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk-4.0.5-py3.10.egg-info/top_level.txt
+[3.043s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/__init__.py
+[3.053s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_read.cpp
+[3.064s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_read.py
+[3.075s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_write.cpp
+[3.087s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_write.py
+[3.101s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_fast_bulk_read.cpp
+[3.110s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_fast_sync_read.cpp
+[3.123s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_handler.cpp
+[3.135s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_read.cpp
+[3.148s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_read.py
+[3.159s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_write.cpp
+[3.171s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_write.py
+[3.183s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/packet_handler.cpp
+[3.193s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/packet_handler.py
+[3.210s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler.cpp
+[3.225s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler.py
+[3.233s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler_arduino.cpp
+[3.246s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler_linux.cpp
+[3.256s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler_mac.cpp
+[3.274s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler_windows.cpp
+[3.289s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol1_packet_handler.cpp
+[3.305s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol1_packet_handler.py
+[3.320s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol2_packet_handler.cpp
+[3.346s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol2_packet_handler.py
+[3.374s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/robotis_def.py
+[3.395s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk-4.0.5-py3.10.egg-info/PKG-INFO
+[3.417s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk-4.0.5-py3.10.egg-info/SOURCES.txt
+[3.427s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk-4.0.5-py3.10.egg-info/dependency_links.txt
+[3.437s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk-4.0.5-py3.10.egg-info/top_level.txt
+[3.457s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/__init__.py
+[3.476s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/connector.cpp
+[3.519s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/connector.py
+[3.543s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/control_table.cpp
+[3.561s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/control_table.py
+[3.580s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/data_types.py
+[3.619s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/dynamixel_error.cpp
+[3.647s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/dynamixel_error.py
+[3.655s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/group_executor.cpp
+[3.673s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/group_executor.py
+[3.685s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/motor.cpp
+[3.697s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/motor.py
+[3.709s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/library_path.sh
+[3.733s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/library_path.dsv
+[3.744s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/ament_index/resource_index/package_run_dependencies/dynamixel_sdk
+[3.758s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/ament_index/resource_index/parent_prefix_path/dynamixel_sdk
+[4.018s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/ament_prefix_path.sh
+[4.018s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/ament_prefix_path.dsv
+[4.030s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/path.sh
+[4.051s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/environment/path.dsv
+[4.051s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/local_setup.bash
+[4.070s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/local_setup.sh
+[4.091s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/local_setup.zsh
+[4.101s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/local_setup.dsv
+[4.118s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/package.dsv
+[4.170s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/ament_index/resource_index/packages/dynamixel_sdk
+[4.170s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/ament_cmake_export_targets-extras.cmake
+[4.170s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/ament_cmake_export_include_directories-extras.cmake
+[4.179s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/ament_cmake_export_libraries-extras.cmake
+[4.200s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/dynamixel_sdkConfig.cmake
+[4.219s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/dynamixel_sdkConfig-version.cmake
+[4.234s] -- Symlinking: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/package.xml
+[4.260s] -- Installing: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/lib/libdynamixel_sdk.so
+[4.296s] Listing '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk'...
+[4.296s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/__init__.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_read.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_bulk_write.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_read.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/group_sync_write.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/packet_handler.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/port_handler.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol1_packet_handler.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/protocol2_packet_handler.py'...
+[4.297s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_sdk/robotis_def.py'...
+[4.359s] Listing '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk'...
+[4.359s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/__init__.py'...
+[4.359s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/connector.py'...
+[4.359s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/control_table.py'...
+[4.360s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/data_types.py'...
+[4.360s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/dynamixel_error.py'...
+[4.360s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/group_executor.py'...
+[4.360s] Compiling '/home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/local/lib/python3.10/dist-packages/dynamixel_easy_sdk/motor.py'...
+[4.369s] -- Installing: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/dynamixel_sdkExport.cmake
+[4.369s] -- Installing: /home/vboxuser/turtlebot3_ws/install/dynamixel_sdk/share/dynamixel_sdk/cmake/dynamixel_sdkExport-noconfig.cmake
+[4.373s] Invoked command in '/home/vboxuser/turtlebot3_ws/build/dynamixel_sdk' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/vboxuser/turtlebot3_ws/build/dynamixel_sdk
