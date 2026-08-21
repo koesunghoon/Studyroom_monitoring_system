@@ -1,4 +1,5 @@
 # Studyroom_monitoring_system
+
 **스터디카페 무인 순찰 로봇 — TurtleBot3 기반 실시간 모니터링 & 출결 관리 시스템**
 
 TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면서, 카메라로 좌석 상황(쓰러짐/분실물)을 감지하고, 지문인식으로 출결을 자동 관리하는 통합 시스템입니다.
@@ -21,7 +22,7 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 - 감지 즉시 DB 기록, 해당 좌석 UI 변경, 실시간 알림 팝업
 - "조치 완료" 처리 시 자동으로 퇴실 처리(출결 기록 포함)
 
-### 🎒 분실물 감지 
+### 🎒 분실물 감지
 - 좌석이 공석인데 물건(가방)만 감지되는 경우를 자동으로 판별해 경고
 
 ### 🖐️ 지문인식 출결 관리
@@ -37,42 +38,78 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 
 ## 시스템 아키텍처
 
-```
-┌─────────────────────────┐
-│   라즈베리파이 (pi02)     │
-│  ─────────────────────  │
-│  RealSense D435          │
-│  - 컬러/뎁스 MJPEG 스트리밍 │
-│  (camera_stream.py)      │
-└───────────┬──────────────┘
-            │ HTTP (MJPEG)
-            ▼
-┌──────────────────────────────────────────────┐
-│           PC (WSL2, Ubuntu 22.04)              │
-│  ┌────────────────────────────────────────┐  │
-│  │  Flask 서버 (app.py)                     │  │
-│  │  ─────────────────────────────────────  │  │
-│  │  · YOLO 추론 (sit/fallen)                │  │
-│  │  · 거리 계산 + 방 번호 판정                │  │
-│  │  · rclpy 백그라운드 노드                  │  │
-│  │    (/map, /battery_state, tf 구독)       │  │
-│  │  · SQLite DB (출결/순찰/경고/분실물)       │  │
-│  │  · 지문 출결 TCP 서버 (5001)              │  │
-│  │  · 순찰 시작/종료 API                     │  │
-│  │  · 웹 대시보드 (실시간 폴링)               │  │
-│  └────────────────────────────────────────┘  │
-└───────────┬────────────────────┬──────────────┘
-            │ ROS2 (DDS)          │ TCP (5001)
-            ▼                     ▼
-┌─────────────────────┐   ┌──────────────────────┐
-│  TurtleBot3 + Nav2    │   │  STM32 NUCLEO-F411RE  │
-│  ───────────────────  │   │  ────────────────────  │
-│  · RPLIDAR C1 SLAM    │   │  · AS608 지문 센서      │
-│  · Cartographer/Nav2  │   │  · RC522 RFID(관리자)   │
-│  · 웨이포인트 순찰      │   │  · ESP-01 WiFi 모듈     │
-│  (patrol8.py)         │   │  · CLI(ST-Link VCP)     │
-└─────────────────────┘   └──────────────────────┘
-```
+<svg viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" font-family="Malgun Gothic, Apple SD Gothic Neo, Pretendard, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#4a6fa5" />
+    </marker>
+    <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7a7e6c" />
+    </marker>
+  </defs>
+
+  <rect width="1000" height="760" fill="#fbfaf3"/>
+
+  <!-- Title -->
+  <text x="500" y="38" text-anchor="middle" font-size="22" font-weight="700" fill="#2c2f3a">STUDYCAM 시스템 아키텍처</text>
+
+  <!-- Box A: Raspberry Pi -->
+  <rect x="40" y="80" width="300" height="150" rx="12" fill="#eef2f7" stroke="#4a6fa5" stroke-width="2"/>
+  <text x="190" y="112" text-anchor="middle" font-size="15" font-weight="700" fill="#2c2f3a">라즈베리파이 (pi02)</text>
+  <line x1="60" y1="124" x2="320" y2="124" stroke="#c9d4e3" stroke-width="1"/>
+  <text x="60" y="150" font-size="12.5" fill="#4a5568">· Intel RealSense D435</text>
+  <text x="60" y="172" font-size="12.5" fill="#4a5568">· 컬러 + 뎁스 MJPEG 스트리밍</text>
+  <text x="60" y="194" font-size="12.5" fill="#4a5568">  (camera_stream.py)</text>
+  <text x="60" y="216" font-size="11" fill="#8a92a6">포트: 8000</text>
+
+  <!-- Box B: PC / WSL Flask (Hub) -->
+  <rect x="330" y="260" width="340" height="290" rx="14" fill="#fff7e6" stroke="#d99a2b" stroke-width="2.5"/>
+  <text x="500" y="294" text-anchor="middle" font-size="16" font-weight="700" fill="#2c2f3a">PC (WSL2, Ubuntu 22.04)</text>
+  <text x="500" y="314" text-anchor="middle" font-size="12" fill="#8a6a30">Flask 서버 (app.py)</text>
+  <line x1="352" y1="326" x2="648" y2="326" stroke="#e8d19a" stroke-width="1"/>
+  <text x="352" y="352" font-size="12.5" fill="#4a5568">· YOLO 추론 (sit / fallen)</text>
+  <text x="352" y="374" font-size="12.5" fill="#4a5568">· 뎁스 거리 계산 → 방(좌석) 번호 판정</text>
+  <text x="352" y="396" font-size="12.5" fill="#4a5568">· rclpy 백그라운드 노드</text>
+  <text x="352" y="416" font-size="12.5" fill="#4a5568">  (/map, /battery_state, tf 구독)</text>
+  <text x="352" y="438" font-size="12.5" fill="#4a5568">· SQLite DB (출결·순찰·경고·분실물)</text>
+  <text x="352" y="460" font-size="12.5" fill="#4a5568">· 지문 출결 TCP 서버</text>
+  <text x="352" y="482" font-size="12.5" fill="#4a5568">· 순찰 시작/종료 API</text>
+  <text x="352" y="504" font-size="12.5" fill="#4a5568">· 웹 대시보드 (실시간 폴링)</text>
+  <text x="352" y="530" font-size="11" fill="#8a6a30">포트: 5000 (웹), 5001 (지문 TCP)</text>
+
+  <!-- Box C: TurtleBot3 + Nav2 -->
+  <rect x="40" y="560" width="300" height="140" rx="12" fill="#eef4ee" stroke="#6f9468" stroke-width="2"/>
+  <text x="190" y="592" text-anchor="middle" font-size="15" font-weight="700" fill="#2c2f3a">TurtleBot3 + Nav2</text>
+  <line x1="60" y1="604" x2="320" y2="604" stroke="#c9e0c5" stroke-width="1"/>
+  <text x="60" y="628" font-size="12.5" fill="#4a5568">· RPLIDAR C1 + SLAM (Cartographer)</text>
+  <text x="60" y="650" font-size="12.5" fill="#4a5568">· Nav2 웨이포인트 자율 순찰</text>
+  <text x="60" y="672" font-size="12.5" fill="#4a5568">  (patrol8.py)</text>
+
+  <!-- Box D: STM32 -->
+  <rect x="660" y="560" width="300" height="140" rx="12" fill="#f7eeee" stroke="#c1584a" stroke-width="2"/>
+  <text x="810" y="592" text-anchor="middle" font-size="15" font-weight="700" fill="#2c2f3a">STM32 NUCLEO-F411RE</text>
+  <line x1="680" y1="604" x2="940" y2="604" stroke="#e8cac6" stroke-width="1"/>
+  <text x="680" y="628" font-size="12.5" fill="#4a5568">· AS608 지문 센서 (출결)</text>
+  <text x="680" y="650" font-size="12.5" fill="#4a5568">· RC522 RFID (관리자 인증)</text>
+  <text x="680" y="672" font-size="12.5" fill="#4a5568">· ESP-01 WiFi 모듈</text>
+
+  <!-- Arrow: Pi -> PC -->
+  <path d="M 250 230 C 260 250, 320 255, 380 262" fill="none" stroke="#4a6fa5" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="235" y="248" font-size="11.5" fill="#4a6fa5" font-weight="600">HTTP (MJPEG)</text>
+
+  <!-- Arrow: TurtleBot3 -> PC (로봇이 발행 -> PC가 구독) -->
+  <path d="M 210 558 C 240 500, 280 480, 330 460" fill="none" stroke="#6f9468" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="205" y="530" font-size="11.5" fill="#6f9468" font-weight="600">ROS2 (DDS)</text>
+  <text x="185" y="546" font-size="10.5" fill="#6f9468">/map · tf · battery</text>
+
+  <!-- Arrow: STM32 -> PC -->
+  <path d="M 700 558 C 690 500, 640 480, 670 460" fill="none" stroke="#c1584a" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="712" y="530" font-size="11.5" fill="#c1584a" font-weight="600">TCP (5001)</text>
+  <text x="700" y="546" font-size="10.5" fill="#c1584a">"FP,&lt;슬롯&gt;"</text>
+
+  <!-- Legend -->
+  <text x="500" y="735" text-anchor="middle" font-size="11" fill="#8a92a6">Flask 서버가 세 하드웨어 축(카메라·자율주행·임베디드)을 하나로 통합하는 허브 역할</text>
+</svg>
 
 ### 핵심 설계 원칙
 
@@ -96,33 +133,6 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 | 백엔드 | Python, Flask, SQLite, rclpy |
 | 프론트엔드 | HTML/CSS/JavaScript (Vanilla) |
 | 개발 환경 | WSL2 (Ubuntu 22.04) + Windows |
-
----
-
-## 폴더 구조
-
-```
-Studyroom_monitoring_system/
-├── studycam_server/
-│   ├── app.py                 # Flask 메인 서버
-│   ├── best.pt                 # YOLO 학습 모델
-│   ├── requirements.txt
-│   ├── templates/
-│   │   └── index.html
-│   └── static/
-│       ├── css/style.css
-│       └── js/dashboard.js
-├── STM32_Studyroom/            # STM32 펌웨어 (CubeIDE 프로젝트)
-│   ├── Core/Src/
-│   │   ├── main.c
-│   │   ├── cli.c               # 시리얼 CLI (지문 등록/인식 등)
-│   │   ├── rfid.c              # RC522 RFID 드라이버
-│   │   ├── esp01.c             # ESP-01 WiFi 드라이버
-│   │   └── fingerprint.c       # AS608 지문 센서 드라이버
-│   └── ...
-├── patrol8.py                  # Nav2 웨이포인트 순찰 스크립트
-└── camera_stream.py             # 파이 쪽 카메라 스트리밍 서버
-```
 
 ---
 
@@ -169,9 +179,9 @@ python app.py
 
 | 담당 | 역할 |
 |---|---|
-| _(고성훈)_ |프로젝트 총괄|
-| _(고경민, 김재민, 고성훈)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직, RealSense 카메라 스트리밍 |
-| _(고성훈)_ | STM32 임베디드 (지문인식 AS608, RFID 관리자 인증, WiFi 통신) |
-| _(김준혁, 고지훈)_ |YOLO 연동|
-| _(김준혁)_ | 웹 대시보드, Flask서버, DB설계 및 연동 |
+| _(고성훈)_ |프로젝트 총괄, STM32 임베디드 (지문인식 AS608, RFID 관리자 인증, WiFi 통신) |
+| _(고경민, 김재민)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직, RealSense 카메라 스트리밍 |
+| _(김준혁)_ | 웹 대시보드, Flask 서버, YOLO 연동, DB 설계 |
+| _(고지훈, 김준혁)_ |YOLO 연동|
 ---
+
