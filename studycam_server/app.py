@@ -230,6 +230,26 @@ class LatestDepthReader:
         self.thread = threading.Thread(target=self._reader, daemon=True)
         self.thread.start()
 
+    @staticmethod
+    def _find_png_end(buf, start):
+        """
+        PNG 청크 구조(길이+타입+데이터+CRC)를 따라가면서 진짜 IEND 청크의 끝 위치를 찾음.
+        압축된 픽셀 데이터 안에 우연히 "IEND" 텍스트가 섞여 나오는 오탐(false positive)을 막기 위해,
+        단순 텍스트 검색 대신 각 청크 길이만큼 정확히 건너뛰며 확인함.
+        반환값: 다음 청크가 아직 다 안 왔으면 None, 찾았으면 그 끝 위치(int)
+        """
+        pos = start + 8  # PNG 시그니처(8바이트) 다음부터 청크가 시작됨
+        while pos + 8 <= len(buf):
+            length = int.from_bytes(buf[pos:pos + 4], "big")
+            chunk_type = buf[pos + 4:pos + 8]
+            chunk_end = pos + 8 + length + 4  # 길이(4)+타입(4) + 데이터(length) + CRC(4)
+            if chunk_end > len(buf):
+                return None  # 이 청크가 아직 다 도착 안 함 -> 더 받아야 함
+            if chunk_type == b"IEND":
+                return chunk_end
+            pos = chunk_end
+        return None
+
     def _reader(self):
         while self.running:
             try:
@@ -240,16 +260,19 @@ class LatestDepthReader:
                         break
                     buf += chunk
                     start = buf.find(b"\x89PNG")
-                    end = buf.find(b"IEND")
-                    if start != -1 and end != -1 and end > start:
-                        end_full = end + 8  # IEND + CRC(4바이트)까지 포함
-                        png_bytes = buf[start:end_full]
-                        buf = buf[end_full:]
-                        arr = np.frombuffer(png_bytes, dtype=np.uint8)
-                        depth_img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
-                        if depth_img is not None:
-                            with self.lock:
-                                self.frame = depth_img
+                    if start == -1:
+                        continue
+                    end_full = self._find_png_end(buf, start)
+                    if end_full is None:
+                        continue  # 아직 프레임이 다 안 왔음, 다음 청크 더 받기
+
+                    png_bytes = buf[start:end_full]
+                    buf = buf[end_full:]
+                    arr = np.frombuffer(png_bytes, dtype=np.uint8)
+                    depth_img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+                    if depth_img is not None:
+                        with self.lock:
+                            self.frame = depth_img
             except Exception:
                 # 아직 뎁스 엔드포인트가 안 켜져 있거나 접속 실패 -> 잠깐 쉬고 재시도
                 time.sleep(2)
@@ -560,7 +583,30 @@ def handle_fingerprint_line(line):
     record_attendance(slot)
 
 
+# 지금 연결돼 있는 STM32 소켓 (문열림 신호를 되돌려 보낼 때 씀)
+_fingerprint_conn = None
+_fingerprint_conn_lock = threading.Lock()
+
+
+def send_door_open_command():
+    """조치 완료 시 STM32에 문열림 신호를 보냄. 연결 안 돼있으면 조용히 실패."""
+    with _fingerprint_conn_lock:
+        conn = _fingerprint_conn
+    if conn is None:
+        print("[문열림 신호] STM32가 연결되어 있지 않아 전송하지 못함")
+        return False
+    try:
+        conn.sendall(b"DOOR_OPEN\n")
+        print("[문열림 신호] STM32로 전송함")
+        return True
+    except Exception as e:
+        print(f"[문열림 신호] 전송 실패: {e}")
+        return False
+
+
 def fingerprint_server_loop():
+    global _fingerprint_conn
+
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind(("0.0.0.0", FINGERPRINT_TCP_PORT))
@@ -570,6 +616,9 @@ def fingerprint_server_loop():
     while True:
         conn, addr = srv.accept()
         print(f"[지문 출결] STM32 연결됨: {addr}")
+        with _fingerprint_conn_lock:
+            _fingerprint_conn = conn
+
         buf = b""
         try:
             with conn:
@@ -583,6 +632,10 @@ def fingerprint_server_loop():
                         handle_fingerprint_line(line.decode(errors="ignore"))
         except Exception as e:
             print(f"[지문 출결] 연결 처리 중 오류: {e}")
+        finally:
+            with _fingerprint_conn_lock:
+                if _fingerprint_conn is conn:
+                    _fingerprint_conn = None
 
 
 fingerprint_thread = threading.Thread(target=fingerprint_server_loop, daemon=True)
@@ -814,6 +867,10 @@ def resolve_warning(warning_id):
     match = re.match(r"(\d+)번 좌석", row["seat"] or "")
     if match:
         force_checkout_seat(int(match.group(1)))
+
+    # "조치 완료"(오탐 아님)일 때만 STM32 문열림 신호 전송
+    if status == "완료":
+        send_door_open_command()
 
     # 쓰러짐 감지였다면, 조치 완료됐으니 다시 새로운 상황으로 감지 가능하게 리셋
     if row["wtype"] == "쓰러짐 의심":
