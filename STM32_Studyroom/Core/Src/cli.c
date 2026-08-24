@@ -31,11 +31,21 @@ static void CLI_ReadLine(char *buf, uint16_t maxLen)
 {
     uint16_t idx = 0;
     uint8_t ch;
+    char espData[64];
 
     memset(buf, 0, maxLen);
 
     while (1) {
-        if (HAL_UART_Receive(CLI_UART, &ch, 1, HAL_MAX_DELAY) != HAL_OK) {
+        if (HAL_UART_Receive(CLI_UART, &ch, 1, 100) != HAL_OK) {
+            if (ESP01_CheckIncomingData(espData, sizeof(espData))) {
+                if (strstr(espData, "DOOR_OPEN") != NULL) {
+                    CLI_Print("\r\n>> [알림] 쓰러짐 감지 - 비상 문열림\r\n");
+                    Servo_Open();
+                    HAL_Delay(3000);
+                    Servo_Close();
+                    CLI_Print(">> 문 닫힘\r\n");
+                }
+            }
             continue;
         }
 
@@ -238,9 +248,14 @@ static void CLI_MenuAdminAuth(void)
     CLI_Print(msg);
 
     if (RFID_IsAdminCard(uid)) {
-        CLI_Print(">> 인증 성공!\r\n");
+        CLI_Print(">> 관리자 인증 성공!\r\n");
+        CLI_Print(">> 문 열림\r\n");
+        Servo_Open();
+        HAL_Delay(3000); // 문 열려있는 시간 (필요에 맞게 조정)
+        CLI_Print(">> 문 닫힘\r\n");
+        Servo_Close();
     } else {
-        CLI_Print(">> 인증 실패 (등록되지 않은 카드)\r\n");
+        CLI_Print(">> 관리자 인증 실패 (등록되지 않은 카드)\r\n");
     }
 }
 
@@ -273,17 +288,16 @@ static void CLI_MenuWifiTest(void)
 
 }
 
-
 static void CLI_PrintMenu(void)
 {
     CLI_Print("\r\n========================================\r\n");
-    CLI_Print("             CLI 테스트\r\n");
+    CLI_Print("                  CLI\r\n");
     CLI_Print("========================================\r\n");
     CLI_Print("  0. 통신 확인 (핸드셰이크)\r\n");
     CLI_Print("  1. 지문 등록\r\n");
     CLI_Print("  2. 지문 인식\r\n");
     CLI_Print("  3. 관리자 인증\r\n");
-    CLI_Print("  4. WiFi 연결 테스트\r\n");
+    CLI_Print("  4. WiFi 및 서버 연결\r\n");
     CLI_Print("----------------------------------------\r\n");
     CLI_Print("선택: ");
 }

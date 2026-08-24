@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 /* 도어 개폐 각도 - 실제 도어 링키지 구조에 맞게 조정 */
-#define SERVO_CLOSE_ANGLE   0
-#define SERVO_OPEN_ANGLE    90
+#define SERVO_CLOSE_ANGLE   90
+#define SERVO_OPEN_ANGLE    0
 
 void Servo_Init(void);
 void Servo_SetAngle(uint16_t angle);
