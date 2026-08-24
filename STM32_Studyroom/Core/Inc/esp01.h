@@ -15,7 +15,7 @@
 #define WIFI_SSID       "turtlebot"
 #define WIFI_PASSWORD   "turtlebot"
 #define SERVER_IP       "192.168.0.2"
-#define SERVER_PORT     5000
+#define SERVER_PORT     5001
 
 /* ---------------- 결과 코드 ---------------- */
 #define ESP01_OK        0
@@ -28,6 +28,7 @@ uint8_t ESP01_ConnectWiFi(const char *ssid, const char *password);
 uint8_t ESP01_ConnectServer(const char *ip, uint16_t port);
 uint8_t ESP01_SendData(const char *data, uint16_t len);
 uint8_t ESP01_CloseConnection(void);
+uint8_t ESP01_CheckIncomingData(char *outBuf, uint16_t outBufSize);
 const char* ESP01_GetLastResponse(void);
 
 #endif /* ESP01_H */
