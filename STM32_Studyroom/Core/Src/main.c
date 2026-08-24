@@ -23,7 +23,6 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
-#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -104,6 +103,35 @@ int main(void)
   CLI_Init();
   RFID_Init();
   Servo_Init();
+
+  /* USART2(ST-LINK VCP)로 직접 출력하는 부팅 로그 전용 헬퍼.
+     cli.c의 CLI_Print는 그 파일 안에서만 쓸 수 있는(static) 함수라 여기선 못 씀. */
+  {
+    const char *msg;
+
+    /* 부팅 시 WiFi + 지문 출결 서버(TCP)에 미리 연결해둠.
+       이렇게 해두면 CLI 메뉴 2번(지문 인식)에서 매번 4번(WiFi 테스트)을
+       먼저 실행할 필요 없이 바로 서버 전송까지 됨.
+       실패해도 CLI 자체는 계속 쓸 수 있도록 결과만 출력하고 넘어감. */
+    msg = "\r\n[부팅] WiFi/서버 자동 연결 시도 중...\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+
+    ESP01_Init();
+    if (ESP01_ConnectWiFi(WIFI_SSID, WIFI_PASSWORD) == ESP01_OK) {
+        msg = "[부팅] WiFi 연결 성공\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+
+        if (ESP01_ConnectServer(SERVER_IP, SERVER_PORT) == ESP01_OK) {
+            msg = "[부팅] 지문 출결 서버 연결 성공\r\n";
+        } else {
+            msg = "[부팅] 지문 출결 서버 연결 실패 (메뉴 4번으로 재시도 가능)\r\n";
+        }
+        HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+    } else {
+        msg = "[부팅] WiFi 연결 실패 (메뉴 4번으로 재시도 가능)\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+    }
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
