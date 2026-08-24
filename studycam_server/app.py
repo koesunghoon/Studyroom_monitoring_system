@@ -74,6 +74,8 @@ LOST_ITEM_CLASSES = {"item"}
 BOX_COLORS = {
     "sit": (0, 200, 0),
     "fallen": (0, 0, 255),
+    "item": (200, 80, 160),   # 보라 계열 (BGR) - sit(초록)/fallen(빨강)과 구분되는 색
+    "empty": (255, 255, 255),  # 흰색 (명시적으로 지정 - 기본값과 같지만 의도를 분명히 함)
 }
 _last_alert_ts = {}
 _streak_start_ts = {}  # 클래스명 -> 지금 연속 감지가 "언제부터" 시작됐는지 (끊기면 None)
@@ -935,7 +937,7 @@ def gen_frames():
         # 이번 프레임에서 각 클래스별로 감지된 "최고 신뢰도 박스" 하나씩만 기록
         # (연속 프레임 판정 + 위치 계산에 이 박스의 cx, cy, 거리를 그대로 씀)
         best_detection_this_frame = {}
-        detected_labels_this_frame = set()  # 분실물 판정 시 "사람이 없는지" 확인용
+        detected_labels_this_frame = set()  # empty 직접 감지 확인 및 분실물 판정용
 
         for box in results.boxes:
             label = CLASS_NAMES[int(box.cls[0])]
@@ -968,7 +970,9 @@ def gen_frames():
                         "conf": conf, "cx": cx, "cy": cy, "dist_m": dist_m,
                     }
 
-        person_present_this_frame = "sit" in detected_labels_this_frame
+        # "좌석이 비어있다"를 sit 부재로 간접 추론하지 않고, empty 클래스 직접 감지로 확인
+        # (카메라 각도 등으로 sit을 못 잡아내는 경우에 "없음"으로 오판하는 걸 방지)
+        empty_confirmed_this_frame = "empty" in detected_labels_this_frame
 
         # 연속 감지 "지속 시간" 판정: 이번 프레임에 감지 안 됐으면 스트릭 초기화
         # (프레임 개수가 아니라 실제 경과 시간(초)으로 재서, 처리 속도가 빨라져도
@@ -1016,7 +1020,7 @@ def gen_frames():
 
         # ---- 분실물 판정 (사람이 없을 때만) ----
         for cls in LOST_ITEM_CLASSES:
-            if cls in best_detection_this_frame and not person_present_this_frame:
+            if cls in best_detection_this_frame and empty_confirmed_this_frame:
                 if _streak_start_ts.get(cls) is None:
                     _streak_start_ts[cls] = now_ts
             else:
