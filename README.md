@@ -36,9 +36,14 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 - 웹 대시보드에서 위급상황 "조치 완료" 처리 시, 서버가 STM32에 원격으로 개방 신호를 전송해 출입문도 함께 열리도록 연동
   (지문 출결 전송용 TCP 채널을 양방향으로 확장해 구현)
 
-### 🚶 순찰 관리
-- TurtleBot이 전체 웨이포인트를 한 바퀴 돌 때마다 순찰 횟수 자동 기록
-- 순찰 시작/종료 실시간 이벤트 알림
+### 🚶 자율주행 순찰
+- 정식 ROS2 노드(`patrol_pkg`)로 구현 — `NavigateToPose` 액션 클라이언트를 직접 사용한 콜백 기반(논블로킹) 구조
+- 지도상 9개 웨이포인트를 정방향 순회 후 역순으로 귀환하는 왕복 순찰
+- 웨이포인트별 정지 시간 확보 및 도착 시 바라보는 방향(yaw) 지정
+  → 칸막이 좌석 구조에 맞춰 좌/우 회전하여 객체 인식 사각지대 최소화
+- 오도메트리 누적 오차(위치 드리프트) 자동 보정
+  → 매 바퀴 시작점 복귀 시 `/initialpose` 재발행으로 AMCL 위치 추정 재조정
+- 순찰 한 바퀴 완료 시마다 횟수 자동 기록, 시작/종료 실시간 이벤트 알림
 
 ---
 
@@ -54,6 +59,19 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
   - 카메라 스트리밍: HTTP MJPEG (직접 파싱)
   - 지문 출결: 순수 TCP 소켓 (ESP01 AT 커맨드 특성상 HTTP 불가) — 출결 데이터 수신뿐 아니라 출입문 원격 개방 명령 전송까지 양방향으로 활용
   - 순찰 이벤트: 일반 HTTP POST
+- **순찰 로직은 스크립트가 아닌 정식 ROS2 노드로 구현** — `ros2 node list`에 등록되어 다른 시스템 노드와 동일하게 관리/확인 가능하며, launch 파일 통합 및 향후 기능 확장(YOLO 인식 결과 실시간 반영 등)에 유리한 구조 채택
+
+---
+
+## Trouble Shooting
+
+| 문제 | 원인 | 해결 |
+|---|---|---|
+| `/odom` 토픽 수 초씩 끊김, Nav2 목표 이동 실패(`aborted`) | VM에 호스트 물리 코어를 과할당, 3D 가속 부하 | VM 코어 축소(8→6), 3D 가속 비활성화로 안정화 |
+| 순찰 중 위치 추정 오차 누적 | 오도메트리(바퀴 슬립) 누적 드리프트 | 매 바퀴 시작점 복귀 시 AMCL 위치 재보정(`/initialpose` 재발행) |
+| 컬러+뎁스 동시 스트리밍 시 프레임 드롭/처리 실패 | USB 대역폭 부족 | USB 3.0 포트 사용, 컬러/뎁스 공통 지원 해상도(640×480)로 통일, 프레임레이트 조정 |
+| RealSense 다중 접속 시 스트림 실패 | 카메라는 한 프로세스만 독점 가능한데 접속자마다 pipeline 재오픈 | 캡처 전용 스레드 1개 + 공유 프레임 버퍼 구조로 재설계, 다중 클라이언트는 버퍼만 읽도록 변경 |
+| 웨이포인트 순찰 로직을 스크립트로만 구현 시 확장성 저하 | `time.sleep` 기반 블로킹 구조, 다른 노드와 통합 어려움 | `NavigateToPose` 액션 클라이언트 + 타이머 콜백 기반 정식 ROS2 노드(`patrol_pkg`)로 재구현 |
 
 ---
 
@@ -62,12 +80,12 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 | 분류 | 기술 |
 |---|---|
 | 로봇 | TurtleBot3 Burger, RPLIDAR C1, Intel RealSense D435 |
-| 자율주행 | ROS2 Humble, Nav2, Cartographer |
+| 자율주행 | ROS2 Humble, Nav2, Cartographer, 정식 ROS2 패키지(`colcon`, `ros2 run`) |
 | 임베디드 | STM32 NUCLEO-F411RE (HAL), AS608, MFRC522, ESP-01, 서보모터 |
 | AI | YOLOv8 (Ultralytics, 4클래스: sit/fallen/item/empty), pyrealsense2 |
 | 백엔드 | Python, Flask, SQLite, rclpy |
 | 프론트엔드 | HTML/CSS/JavaScript (Vanilla) |
-| 개발 환경 | WSL2 (Ubuntu 22.04) + Windows |
+| 개발 환경 | WSL2 (Ubuntu 22.04) + Windows, VirtualBox (Ubuntu, Nav2/RViz) |
 
 ---
 
@@ -89,15 +107,35 @@ pip install -r requirements.txt
 ```
 
 ### 3. 터틀봇 쪽 실행
+
 ```bash
-# 파이: bringup
-ros2 launch <bringup launch 파일>
+# [라즈베리파이] 브링업
+ros2 launch turtlebot3_bringup robot.launch.py
 
-# 파이: 카메라 스트리밍
+# [라즈베리파이] 카메라 스트리밍 (컬러+뎁스)
 python3 camera_stream.py
+```
 
-# Nav2/AMCL 실행 후 순찰 시작
-python3 patrol8.py
+```bash
+# [PC] Nav2 + 저장된 지도 로드
+ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=$HOME/map2.yaml
+# RViz에서 2D Pose Estimate로 초기 위치 지정
+
+# [PC] patrol_pkg 최초 빌드 (1회만)
+cd ~/turtlebot3_ws/src
+# patrol_pkg 소스 배치 후
+cd ~/turtlebot3_ws
+colcon build --packages-select patrol_pkg
+source install/setup.bash
+
+# [PC] 순찰 노드 실행
+ros2 run patrol_pkg patrol_node
+```
+
+**확인:**
+```bash
+ros2 node list        # /patrol_node 등록 확인
+ros2 node info /patrol_node   # /navigate_to_pose 액션 클라이언트 확인
 ```
 
 ### 4. 웹 서버 실행
@@ -114,8 +152,8 @@ python app.py
 
 | 담당 | 역할 |
 |---|---|
-| _(고성훈)_ |프로젝트 총괄, STM32 임베디드 (지문인식 AS608, RFID 관리자 인증, WiFi 통신, 출입문 서보모터 제어) |
-| _(고경민, 김재민)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직, RealSense 카메라 스트리밍 |
+| _(고성훈)_ | 프로젝트 총괄, STM32 임베디드 (지문인식 AS608, RFID 관리자 인증, WiFi 통신, 출입문 서보모터 제어) |
+| _(고경민, 김재민)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직(ROS2 노드화), RealSense 카메라 스트리밍 |
 | _(김준혁)_ | 웹 대시보드, Flask 서버, YOLO 연동, DB 설계 |
-| _(고지훈, 김준혁)_ |YOLO 연동|
+| _(고지훈, 김준혁)_ | YOLO 연동 |
 ---
