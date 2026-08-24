@@ -44,14 +44,12 @@ app = Flask(__name__)
 # ============================================================
 PI_STREAM_URL = "http://192.168.0.4:8000/video_feed"   # 실제 파이 IP:포트로 교체
 
-# TODO(터틀봇팀 뎁스 엔드포인트 완성되면): 정확한 URL/포트로 교체
-# 팀원이 RealSense pyrealsense2로 뎁스 프레임을 16비트 PNG로 스트리밍해준다고 가정.
 # 단위는 mm — DEPTH_SCALE_M으로 미터 변환 (팀원 카메라 실측값 확인 완료)
 PI_DEPTH_URL = "http://192.168.0.4:8000/depth_feed"
 DEPTH_SCALE_M = 0.0010000000474974513  # raw depth 값(정수) * 이 값 = 미터 (팀원 실측값)
 
 # ============================================================
-# YOLO 모델 (sit / fallen 2클래스)
+# YOLO 모델 (sit / fallen / empty / item 4클래스)
 # ============================================================
 yolo_model = YOLO(MODEL_PATH)
 CLASS_NAMES = yolo_model.names
@@ -68,7 +66,7 @@ ALERT_MIN_DURATION_SEC = 2.5  # 이 시간(초) 이상 "연속으로" 감지돼�
 ALERT_COOLDOWN_SEC = 10
 ALERT_TRIGGER_CLASSES = {"fallen"}
 
-# 분실물 감지 클래스 (best.pt 학습 완료, 클래스명 확정됨)
+# 분실물 감지 클래스 (best.pt)
 LOST_ITEM_CLASSES = {"item"}
 
 BOX_COLORS = {
@@ -83,7 +81,7 @@ _alert_active = {}     # 클래스명 -> 지금 "미해결 상태로 활성화�
 
 # ============================================================
 # 카메라 내부 파라미터 (거리 -> 맵 좌표 변환에 필요)
-# TODO(팀원 실측 필요): pyrealsense2로 아래처럼 뽑아서 정확한 값으로 교체
+# pyrealsense2로 아래처럼 뽑아서 정확한 값으로 교체
 #   profile = pipeline.get_active_profile()
 #   intr = profile.get_stream(rs.stream.depth).as_video_stream_profile().get_intrinsics()
 #   print(intr.fx, intr.fy, intr.ppx, intr.ppy)
@@ -102,12 +100,11 @@ CAM_OFFSET_Y = 0.08
 
 # ============================================================
 # 7개 방의 맵 좌표 "중심점" (x, y), 단위: m
-# patrol7.py(자율주행 웨이포인트)에서 실측한 좌표를 그대로 가져다 씀.
-# TODO: point_N -> 방 번호 매핑 확정되면 채워넣기
+# patrol.py(자율주행 웨이포인트)에서 실측한 좌표를 그대로 가져다 씀.
 # ============================================================
 MAX_ROOM_DISTANCE = 1.5  # 가장 가까운 방 중심점이라도 이보다 멀면 "미확인 구역" 처리 (m)
 
-# patrol7.py 웨이포인트 좌표 (point_3 ~ point_9 -> 1~7번 좌석, 1인실 7개)
+# patrol.py 웨이포인트 좌표 (point_3 ~ point_9 -> 1~7번 좌석, 1인실 7개)
 # point_1은 시작 위치, point_2는 방과 무관한 경유점이라 매핑에서 제외
 ROOM_CENTERS = {
     1: (0.7443546017221914, 1.1606690109190736),    # point_3
@@ -725,8 +722,8 @@ def api_map():
 
 # ============================================================
 # API: 좌석 현황 (YOLO 결과 - 아직 목업, 좌석 수만 7개로 고정)
-# TODO(YOLO 연동): 추론 파이프라인에서 좌석별 상태를 계산해 이 캐시를 갱신
-# TODO(지문인식 연동): 출결(attendance)은 센서 붙으면 실데이터로 교체
+# YOLO 연동: 추론 파이프라인에서 좌석별 상태를 계산해 이 캐시를 갱신
+# 지문인식 연동: 출결(attendance)은 센서 붙으면 실데이터로 교체
 # ============================================================
 SEAT_COUNT = 7
 _seat_cache = None
