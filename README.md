@@ -148,6 +148,18 @@ python app.py
 ```
 브라우저에서 `http://localhost:5000` 접속
 
+### 5. STM32 실행
+
+**하드웨어 결선**
+
+| 모듈 | 인터페이스 | 비고 |
+|---|---|---|
+| AS608 지문센서 | USART1 (PA9 TX, PA10 RX) | 57600bps |
+| ESP-01 WiFi | USART6 (PC6 TX, PC7 RX) | 9600bps, 인터럽트 수신 |
+| MFRC522 RFID | SPI2 (SCK/MISO/MOSI + CS=PB6, RST=PB4) | 관리자 카드 인증 |
+| 서보모터 (도어) | TIM3 CH1 PWM | 출입문 개폐 |
+| ST-LINK VCP | USART2 (PA2 TX, PA3 RX) | CLI/시리얼 모니터, 115200bps |
+
 ---
 
 ## 팀 구성
@@ -155,7 +167,7 @@ python app.py
 | 담당 | 역할 |
 |---|---|
 | _(고성훈)_ | 프로젝트 총괄, STM32 임베디드 (지문인식 AS608, RFID 관리자 인증, WiFi 통신, 출입문 서보모터 제어) |
-| _(고경민, 김재민)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직(ROS2 노드화), RealSense 카메라 스트리밍 |
+| _(고경민, 김재민, 고성)_ | TurtleBot3 SLAM/Nav2, 자율주행 순찰 로직(ROS2 노드화), RealSense 카메라 스트리밍 |
 | _(김준혁)_ | 웹 대시보드, Flask 서버, YOLO 연동, DB 설계 |
 | _(고지훈, 김준혁)_ | YOLO 연동 |
 ---
