@@ -50,7 +50,7 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 
 ## 시스템 아키텍처
 
-![STUDYCAM 시스템 아키텍처](./architecture.svg)
+![STUDYCAM 시스템 아키텍처](./architecture.png)
 
 ### 핵심 설계 원칙
 
