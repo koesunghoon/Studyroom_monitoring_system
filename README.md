@@ -94,15 +94,15 @@ TurtleBot3가 스터디카페(1인실 7개)를 자율주행으로 순찰하면�
 ## 실행 방법
 
 ### 1. 사전 준비
-- WSL2(Ubuntu 22.04) + ROS2 Humble 설치
-- `.wslconfig`에 미러 네트워킹 모드 설정
-- Windows 방화벽에 필요한 포트 인바운드 규칙 추가 (ROS2 DDS UDP, Flask 5000, 지문 TCP 5001)
+- WSL2(Ubuntu 22.04) or 가상환경 머신(Ubuntu 22.04) + ROS2 Humble 설치
+- `.wslconfig`에 미러 네트워킹 모드 설정(WSL인 경우)
+- Windows 방화벽관련 오류 발생  필요한 포트 인바운드 규칙 추가 (ROS2 DDS UDP, Flask 5000, 지문 TCP 5001)
 
 ### 2. 저장소 클론 및 환경 설정
 ```bash
 git clone https://github.com/koesunghoon/Studyroom_monitoring_system.git
 cd Studyroom_monitoring_system/studycam_server
-
+sudo apt install ros-humble-desktop
 python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install -r requirements.txt
