@@ -2,11 +2,12 @@
 ## 실행 방법
 
 ```
-# wsl 환경
-python3 -m venv venv
+# Ubuntu(22.04)
+sudo apt install ros-humble-desktop
+python3 -m venv --system-site-packages venv   # rclpy 접근용
 source venv/bin/activate
-pip install --upgrade pip
-pip install flask opencv-python-headless numpy ultralytics
+pip install -r requirements.txt
+python app.py
 ```
 브라우저에서 `http://localhost:5000` 접속.
 
@@ -15,9 +16,7 @@ source /opt/ros/humble/setup.bash    # ROS2 환경 먼저
 source venv/bin/activate              # 그다음 venv
 python app.py
 # 웹에서 map이 뜨지 않을때
-1. WSL 진입 (VSCode에서)
-Ctrl+Shift+P → WSL: Connect to WSL using Distro... → Ubuntu-22.04
-2. 방화벽 규칙 재확인 (Windows PowerShell, 관리자 권한) — 안 되면 이것부터
+1. 방화벽 규칙 재확인 (Windows PowerShell, 관리자 권한) — 안 되면 이것부터
 powershell
 Get-NetFirewallRule -DisplayName "ROS2 DDS*", "Flask Studycam*", "Allow ICMP*" | Select DisplayName, Enabled
 
@@ -28,7 +27,7 @@ New-NetFirewallRule -DisplayName "Allow ICMP In" -Protocol ICMPv4 -IcmpType 8 -D
 New-NetFirewallRule -DisplayName "ROS2 DDS UDP All In" -Direction Inbound -Protocol UDP -Action Allow
 New-NetFirewallRule -DisplayName "ROS2 DDS UDP All Out" -Direction Outbound -Protocol UDP -Action Allow
 New-NetFirewallRule -DisplayName "Flask Studycam TCP" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow
-3. WSL 터미널에서 환경 확인
+3. 터미널에서 환경 확인
 bash
 echo $ROS_DOMAIN_ID          # 31 나와야 함
 echo $RMW_IMPLEMENTATION     # 비어있어야 함
@@ -41,7 +40,7 @@ ros2 launch ~/ros2_ws/src/tb3_c1_bringup/launch/robot_c1.launch.py
 
 bash
 ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=$HOME/map5.yaml
-5. 파이 ↔ WSL 통신 확인
+5. 파이 ↔ ubuntu 통신 확인
 bash
 # WSL에서
 ping <파이IP>
