@@ -1,4 +1,4 @@
-# Studyroom_monitoring_system
+# StudyCam(Studyroom_monitoring_system)
 
 **스터디카페 무인 순찰 로봇 — TurtleBot3 기반 실시간 모니터링 & 출결 관리 시스템**
 
